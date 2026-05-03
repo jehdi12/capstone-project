@@ -711,36 +711,3 @@ def complete_reminder(rid):
     db.session.commit()
     return jsonify({'message': 'Completed'})
 
-# ── Search ───────────────────────────────────────────────────────────────────
-
-@app.route('/api/search', methods=['GET'])
-@login_required
-def search():
-    q = request.args.get('q', '').lower()
-    if not q:
-        return jsonify([])
-    uid = session['user_id']
-    results = []
-    for c in Course.query.filter_by(user_id=uid).all():
-        if q in c.name.lower() or (c.description and q in c.description.lower()):
-            results.append({'type': 'course', 'id': c.id, 'title': c.name, 'subtitle': 'Course'})
-        for m in c.materials:
-            if q in m.original_name.lower() or (m.content_text and q in m.content_text.lower()):
-                results.append({'type': 'material', 'id': m.id, 'title': m.original_name,
-                                'subtitle': f'Material in {c.name}'})
-    for n in Note.query.filter_by(user_id=uid).all():
-        if q in n.title.lower() or (n.content and q in n.content.lower()):
-            results.append({'type': 'note', 'id': n.id, 'title': n.title, 'subtitle': 'Note'})
-    return jsonify(results[:20])
-
-# ── Static / SPA ─────────────────────────────────────────────────────────────
-
-@app.route('/', defaults={'path': ''})
-@app.route('/<path:path>')
-def serve(path):
-    return render_template('index.html')
-
-if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-    app.run(debug=True, port=5000)
