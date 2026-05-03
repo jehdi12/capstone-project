@@ -682,5 +682,65 @@ def delete_note(nid):
     db.session.commit()
     return jsonify({'message': 'Deleted'})
 
+# ── Reminders ────────────────────────────────────────────────────────────────
 
+@app.route('/api/reminders', methods=['GET'])
+@login_required
+def get_reminders():
+    reminders = Reminder.query.filter_by(user_id=session['user_id'])\
+        .order_by(Reminder.due_date).all()
+    return jsonify([{'id': r.id, 'title': r.title, 'due_date': r.due_date.isoformat(),
+                     'completed': r.completed, 'course_id': r.course_id} for r in reminders])
 
+@app.route('/api/reminders', methods=['POST'])
+@login_required
+def create_reminder():
+    data = request.json
+    r = Reminder(user_id=session['user_id'], title=data['title'],
+                 due_date=datetime.datetime.fromisoformat(data['due_date']),
+                 course_id=data.get('course_id'))
+    db.session.add(r)
+    db.session.commit()
+    return jsonify({'id': r.id, 'message': 'Reminder created'})
+
+@app.route('/api/reminders/<int:rid>/complete', methods=['POST'])
+@login_required
+def complete_reminder(rid):
+    r = Reminder.query.filter_by(id=rid, user_id=session['user_id']).first_or_404()
+    r.completed = True
+    db.session.commit()
+    return jsonify({'message': 'Completed'})
+
+# ── Search ───────────────────────────────────────────────────────────────────
+
+@app.route('/api/search', methods=['GET'])
+@login_required
+def search():
+    q = request.args.get('q', '').lower()
+    if not q:
+        return jsonify([])
+    uid = session['user_id']
+    results = []
+    for c in Course.query.filter_by(user_id=uid).all():
+        if q in c.name.lower() or (c.description and q in c.description.lower()):
+            results.append({'type': 'course', 'id': c.id, 'title': c.name, 'subtitle': 'Course'})
+        for m in c.materials:
+            if q in m.original_name.lower() or (m.content_text and q in m.content_text.lower()):
+                results.append({'type': 'material', 'id': m.id, 'title': m.original_name,
+                                'subtitle': f'Material in {c.name}'})
+    for n in Note.query.filter_by(user_id=uid).all():
+        if q in n.title.lower() or (n.content and q in n.content.lower()):
+            results.append({'type': 'note', 'id': n.id, 'title': n.title, 'subtitle': 'Note'})
+    return jsonify(results[:20])
+
+# ── Static / SPA ─────────────────────────────────────────────────────────────
+
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve(path):
+    return render_template('index.html')
+
+if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
+    app.run(debug=True, port=5000)
