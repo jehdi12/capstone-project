@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+YPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -571,10 +571,704 @@ textarea:focus{border-color:var(--accent);}
 <div id="toast"></div>
 
 <script>
+// ── State ─────────────────────────────────────────────────────────────────
+let state = { user: null, courses: [], selectedCourse: null, selectedColor: '#7c6ef7', currentMaterialId: null, currentNoteId: null, quizData: null, flashcards: [], flashcardIndex: 0 };
 
+// ── API ───────────────────────────────────────────────────────────────────
+async function api(method, url, body=null, isForm=false) {
+  const opts = { method, headers: {} };
+  if (body && !isForm) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+  else if (isForm) { opts.body = body; }
+  const r = await fetch(url, opts);
+  return r.json();
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────
+function toast(msg, type='info') {
+  const el = document.createElement('div');
+  el.className = `toast-item toast-${type}`;
+  el.textContent = msg;
+  document.getElementById('toast').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// ── Auth ──────────────────────────────────────────────────────────────────
+function switchAuthTab(t) {
+  document.querySelectorAll('.auth-tab').forEach((b,i) => b.classList.toggle('active', (i===0&&t==='login')||(i===1&&t==='register')));
+  document.getElementById('login-form').style.display = t==='login'?'block':'none';
+  document.getElementById('register-form').style.display = t==='register'?'block':'none';
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value;
+  const password = document.getElementById('login-pass').value;
+  if (!email || !password) { toast('Fill in all fields', 'error'); return; }
+  const r = await api('POST','/api/login',{email,password});
+  if (r.error) { toast(r.error,'error'); return; }
+  state.user = r.user;
+  showApp();
+}
+
+async function doRegister() {
+  const username = document.getElementById('reg-user').value;
+  const email = document.getElementById('reg-email').value;
+  const password = document.getElementById('reg-pass').value;
+  if (!username||!email||!password) { toast('Fill in all fields','error'); return; }
+  const r = await api('POST','/api/register',{username,email,password});
+  if (r.error) { toast(r.error,'error'); return; }
+  state.user = r.user;
+  showApp();
+}
+
+async function doLogout() {
+  await api('POST','/api/logout');
+  state.user = null;
+  document.getElementById('app').style.display='none';
+  document.getElementById('auth-screen').style.display='flex';
+}
+
+async function checkAuth() {
+  const r = await api('GET','/api/me');
+  if (r.authenticated) { state.user = r.user; showApp(); }
+}
+
+function showApp() {
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('sidebar-username').textContent = state.user.username;
+  document.getElementById('sidebar-email').textContent = state.user.email;
+  document.getElementById('sidebar-avatar').textContent = state.user.username[0].toUpperCase();
+  loadDashboard();
+  loadCoursesIntoSelects();
+}
+
+// ── Navigation ────────────────────────────────────────────────────────────
+function navTo(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.getElementById('nav-'+page)?.classList.add('active');
+  if (page==='courses') loadCourses();
+  if (page==='materials') loadMaterials();
+  if (page==='analytics') loadAnalytics();
+  if (page==='notes') loadNotes();
+  if (page==='reminders') loadReminders();
+  if (page==='quizzes') loadQuizMaterials();
+  if (page==='study-plan') loadStudyPlan();
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────
+function showModal(id) { document.getElementById(id).classList.add('active'); }
+function hideModal(id) { document.getElementById(id).classList.remove('active'); }
+document.addEventListener('click', e => { if(e.target.classList.contains('modal-overlay')) e.target.classList.remove('active'); });
+
+// ── Dashboard ─────────────────────────────────────────────────────────────
+async function loadDashboard() {
+  const [analytics, courses] = await Promise.all([api('GET','/api/analytics'), api('GET','/api/courses')]);
+  state.courses = courses;
+  document.getElementById('stat-courses').textContent = analytics.total_courses ?? 0;
+  document.getElementById('stat-materials').textContent = analytics.total_materials ?? 0;
+  document.getElementById('stat-flashcards').textContent = analytics.total_flashcards ?? 0;
+  document.getElementById('stat-avg').textContent = analytics.avg_score ? analytics.avg_score.toFixed(0)+'%' : '–';
+  
+  // Chart
+  renderBarChart('dash-chart', analytics.score_trend?.slice(-8).map(s=>({label:s.date.slice(5),value:s.score})) ?? []);
+  
+  // Courses
+  const el = document.getElementById('dash-courses');
+  if (!courses.length) { el.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📚</div><div class="empty-title">No courses yet</div><div class="empty-sub">Create a course to get started</div><button class="btn btn-primary btn-sm" onclick="showModal(\'modal-course\')">New Course</button></div>'; return; }
+  el.innerHTML = courses.slice(0,3).map(c => courseCardHTML(c)).join('');
+}
+
+function courseCardHTML(c) {
+  const icons = ['📐','🔬','💻','📖','🎨','🌍','⚗️','🧮'];
+  const icon = icons[c.id % icons.length];
+  return `<div class="course-card" onclick="viewCourse(${c.id})">
+    <div class="course-header" style="background:${c.color}22">${icon}</div>
+    <div class="course-body">
+      <div class="course-name">${c.name}</div>
+      <div class="course-meta">${c.description||'No description'}</div>
+      <div class="course-stats">
+        <span class="course-stat">📁 ${c.material_count} files</span>
+        <span class="course-stat">📌 ${c.topic_count} topics</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderBarChart(elId, data) {
+  if (!data || !data.length) { document.getElementById(elId).innerHTML = '<div class="text-muted text-sm" style="padding:20px">No data yet</div>'; return; }
+  const max = Math.max(...data.map(d=>d.value), 1);
+  document.getElementById(elId).innerHTML = data.map(d => `
+    <div class="bar-wrap">
+      <div class="bar-val">${d.value.toFixed(0)}%</div>
+      <div class="bar" style="height:${(d.value/max)*100}%;background:linear-gradient(180deg,var(--accent),var(--accent2))"></div>
+      <div class="bar-label">${d.label}</div>
+    </div>`).join('');
+}
+
+// ── Courses ───────────────────────────────────────────────────────────────
+async function loadCourses() {
+  const courses = await api('GET','/api/courses');
+  state.courses = courses;
+  const el = document.getElementById('courses-grid');
+  if (!courses.length) { el.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📚</div><div class="empty-title">No courses yet</div><button class="btn btn-primary btn-sm" onclick="showModal(\'modal-course\')">Create First Course</button></div>'; return; }
+  el.innerHTML = courses.map(c => courseCardHTML(c)).join('');
+  loadCoursesIntoSelects();
+}
+
+function selectColor(el, color) {
+  document.querySelectorAll('#color-picker .tag').forEach(t => { t.classList.remove('selected'); t.style.background=''; t.style.borderColor=''; t.style.color=''; });
+  el.classList.add('selected');
+  el.style.background = color+'33';
+  el.style.borderColor = color;
+  el.style.color = color;
+  state.selectedColor = color;
+}
+
+async function createCourse() {
+  const name = document.getElementById('course-name').value;
+  const desc = document.getElementById('course-desc').value;
+  if (!name) { toast('Enter a course name','error'); return; }
+  const r = await api('POST','/api/courses',{name,description:desc,color:state.selectedColor});
+  if (r.error) { toast(r.error,'error'); return; }
+  toast('Course created!','success');
+  hideModal('modal-course');
+  document.getElementById('course-name').value='';
+  document.getElementById('course-desc').value='';
+  loadCourses();
+  loadDashboard();
+}
+
+function viewCourse(id) {
+  state.selectedCourse = id;
+  navTo('materials');
+  document.getElementById('mat-course-filter').value = id;
+  loadMaterials();
+}
+
+async function loadCoursesIntoSelects() {
+  const courses = state.courses.length ? state.courses : await api('GET','/api/courses');
+  state.courses = courses;
+  const opts = courses.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  ['mat-course-filter','upload-course','fc-course-filter','new-note-course','rem-course'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const prefix = id==='mat-course-filter' ? '<option value="">All Courses</option>' : id==='fc-course-filter' ? '<option value="">Select Course</option>' : '<option value="">None</option>';
+    el.innerHTML = prefix + opts;
+  });
+}
+
+// ── Materials ─────────────────────────────────────────────────────────────
+async function loadMaterials() {
+  const cid = document.getElementById('mat-course-filter').value;
+  const el = document.getElementById('materials-list');
+  if (!cid) {
+    // Load all materials across all courses
+    const courses = await api('GET','/api/courses');
+    let all = [];
+    for (const c of courses) {
+      const mats = await api('GET',`/api/courses/${c.id}/materials`);
+      mats.forEach(m => { m.course_name = c.name; all.push(m); });
+    }
+    renderMaterials(el, all);
+    return;
+  }
+  const mats = await api('GET',`/api/courses/${cid}/materials`);
+  renderMaterials(el, mats);
+  loadTopicsForUpload(cid);
+}
+
+function renderMaterials(el, mats) {
+  if (!mats.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">📁</div><div class="empty-title">No materials yet</div><div class="empty-sub">Upload your first file</div><button class="btn btn-primary btn-sm" onclick="showModal(\'modal-upload\')">Upload File</button></div>'; return; }
+  const icons = {pdf:'📄',txt:'📝',docx:'📝',pptx:'📊',png:'🖼️',jpg:'🖼️',jpeg:'🖼️'};
+  const colors = {pdf:'rgba(248,113,113,.15)',txt:'rgba(124,110,247,.15)',docx:'rgba(62,207,207,.15)',pptx:'rgba(251,191,36,.15)',png:'rgba(52,211,153,.15)',jpg:'rgba(52,211,153,.15)'};
+  el.innerHTML = mats.map(m => `
+    <div class="material-item">
+      <div class="file-icon" style="background:${colors[m.file_type]||'var(--surface2)'}">${icons[m.file_type]||'📎'}</div>
+      <div>
+        <div class="material-name">${m.original_name}</div>
+        <div class="material-meta">${m.course_name||''} · ${new Date(m.uploaded_at).toLocaleDateString()}
+          ${m.has_summary?'<span class="badge badge-success" style="margin-left:6px">Processed</span>':''}
+        </div>
+      </div>
+      <div class="material-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openMaterial(${m.id},'${m.original_name}')">View</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteMaterial(${m.id})">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+async function loadTopicsForUpload(cid) {
+  const topics = await api('GET',`/api/courses/${cid}/topics`);
+  const sel = document.getElementById('upload-topic');
+  sel.innerHTML = '<option value="">None</option>' + topics.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+}
+
+document.getElementById('upload-course').addEventListener('change', function() { loadTopicsForUpload(this.value); });
+
+function fileSelected(input) {
+  document.getElementById('selected-file-name').textContent = input.files[0]?.name || '';
+}
+
+async function uploadMaterial() {
+  const cid = document.getElementById('upload-course').value;
+  const tid = document.getElementById('upload-topic').value;
+  const file = document.getElementById('file-input').files[0];
+  if (!cid) { toast('Select a course','error'); return; }
+  if (!file) { toast('Select a file','error'); return; }
+  const fd = new FormData();
+  fd.append('file',file); fd.append('course_id',cid);
+  if (tid) fd.append('topic_id',tid);
+  toast('Uploading…','info');
+  const r = await api('POST','/api/materials/upload',fd,true);
+  if (r.error) { toast(r.error,'error'); return; }
+  toast('File uploaded!','success');
+  hideModal('modal-upload');
+  document.getElementById('file-input').value='';
+  document.getElementById('selected-file-name').textContent='';
+  loadMaterials(); loadDashboard();
+}
+
+async function deleteMaterial(id) {
+  if (!confirm('Delete this material?')) return;
+  await api('DELETE',`/api/materials/${id}`);
+  toast('Deleted','success'); loadMaterials(); loadDashboard();
+}
+
+// ── Material Detail Modal ─────────────────────────────────────────────────
+let currentMat = null;
+async function openMaterial(id, name) {
+  state.currentMaterialId = id;
+  document.getElementById('mat-modal-title').textContent = name;
+  document.getElementById('mat-summary-content').textContent = 'Loading…';
+  document.getElementById('mat-concepts-content').innerHTML = '';
+  showModal('modal-material');
+  switchMatTab('summary');
+  // Try to load existing processed data
+  // We'll show generate tab options regardless
+  document.getElementById('mat-summary-content').innerHTML = '<div class="empty-state" style="padding:24px"><div class="empty-icon">⚡</div><div>Click "Generate" tab and click "Extract Key Info" to process this material with AI</div></div>';
+}
+
+function switchMatTab(t) {
+  ['summary','concepts','generate'].forEach(tab => {
+    document.getElementById('mat-tab-'+tab).style.display = tab===t?'block':'none';
+  });
+  document.querySelectorAll('#modal-material .tab').forEach((b,i) => {
+    b.classList.toggle('active', ['summary','concepts','generate'][i]===t);
+  });
+}
+
+async function processAndShow() {
+  const id = state.currentMaterialId;
+  document.getElementById('gen-output').innerHTML = '<div class="loading-text"><div class="spinner"></div> Processing with AI…</div>';
+  const r = await api('POST',`/api/materials/${id}/process`);
+  if (r.error) { document.getElementById('gen-output').innerHTML = `<div class="text-danger">${r.error}</div>`; return; }
+  document.getElementById('mat-summary-content').textContent = r.summary || 'No summary generated.';
+  document.getElementById('mat-concepts-content').innerHTML = `
+    <div class="tag-row mb-3">${(r.key_concepts||[]).map(c=>`<span class="badge badge-accent">${c}</span>`).join('')}</div>
+    <hr class="divider">
+    <div style="display:grid;gap:8px">${Object.entries(r.terms||{}).map(([k,v])=>`
+      <div style="padding:10px;background:var(--surface2);border-radius:8px"><strong class="text-accent">${k}</strong><div class="text-sm text-muted mt-2">${v}</div></div>`).join('')}
+    </div>`;
+  document.getElementById('gen-output').innerHTML = '<div class="text-success">✓ Processed! Check Summary and Key Concepts tabs.</div>';
+  toast('Material processed!','success');
+  loadMaterials();
+}
+
+async function genQuizFromModal() {
+  hideModal('modal-material');
+  navTo('quizzes');
+  await loadQuizMaterials();
+  // Try to select this material
+  document.getElementById('quiz-material-select').value = state.currentMaterialId;
+}
+
+async function genFlashcardsFromModal() {
+  const id = state.currentMaterialId;
+  document.getElementById('gen-output').innerHTML = '<div class="loading-text"><div class="spinner"></div> Generating flashcards…</div>';
+  switchMatTab('generate');
+  const r = await api('POST',`/api/materials/${id}/generate-flashcards`);
+  if (r.error) { document.getElementById('gen-output').innerHTML = `<div class="text-danger">${r.error}</div>`; return; }
+  document.getElementById('gen-output').innerHTML = `<div class="text-success">✓ Generated ${r.count} flashcards! Go to Flashcards tab to review.</div>`;
+  toast(`${r.count} flashcards created!`,'success');
+}
+
+// ── Flashcards ────────────────────────────────────────────────────────────
+async function loadFlashcards() {
+  const cid = document.getElementById('fc-course-filter').value;
+  if (!cid) return;
+  const el = document.getElementById('flashcard-area');
+  el.innerHTML = '<div class="loading-text"><div class="spinner"></div> Loading…</div>';
+  const cards = await api('GET',`/api/courses/${cid}/flashcards`);
+  state.flashcards = cards;
+  state.flashcardIndex = 0;
+  if (!cards.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">🃏</div><div class="empty-title">No flashcards yet</div><div class="empty-sub">Upload materials and generate flashcards from the Materials page</div></div>';
+    return;
+  }
+  renderFlashcard();
+}
+
+function renderFlashcard() {
+  const el = document.getElementById('flashcard-area');
+  const cards = state.flashcards;
+  const idx = state.flashcardIndex;
+  const fc = cards[idx];
+  const known = cards.filter(c=>c.known).length;
+  el.innerHTML = `
+    <div style="max-width:560px;margin:0 auto">
+      <div class="flex justify-between items-center mb-3">
+        <span class="text-sm text-muted">Card ${idx+1} of ${cards.length}</span>
+        <span class="badge badge-success">${known} Known</span>
+      </div>
+      <div class="progress-bar mb-3"><div class="progress-fill" style="width:${((idx+1)/cards.length)*100}%"></div></div>
+      <p class="flashcard-hint">Click card to flip ↕</p>
+      <div class="flashcard-container" id="flashcard" onclick="this.classList.toggle('flipped')">
+        <div class="flashcard-inner">
+          <div class="flashcard-face card-front">${fc.front}</div>
+          <div class="flashcard-face card-back">${fc.back}</div>
+        </div>
+      </div>
+      <div class="flex gap-2 justify-between mt-3">
+        <button class="btn btn-ghost" onclick="prevCard()" ${idx===0?'disabled':''}>← Prev</button>
+        <div class="flex gap-2">
+          <button class="btn btn-danger btn-sm" onclick="reviewCard(${fc.id},false)">Need Review</button>
+          <button class="btn btn-success btn-sm" onclick="reviewCard(${fc.id},true)">Know It ✓</button>
+        </div>
+        <button class="btn btn-ghost" onclick="nextCard()" ${idx===cards.length-1?'disabled':''}>Next →</button>
+      </div>
+      <div class="mt-4 card card-sm">
+        <div class="text-xs text-muted mb-2">ALL CARDS</div>
+        <div class="tag-row">${cards.map((c,i)=>`<div class="tag ${c.known?'selected':''} ${i===idx?'text-accent':''}" onclick="jumpCard(${i})">${i+1}</div>`).join('')}</div>
+      </div>
+    </div>`;
+}
+
+function prevCard() { if(state.flashcardIndex>0){state.flashcardIndex--;renderFlashcard();} }
+function nextCard() { if(state.flashcardIndex<state.flashcards.length-1){state.flashcardIndex++;renderFlashcard();} }
+function jumpCard(i) { state.flashcardIndex=i; renderFlashcard(); }
+
+async function reviewCard(id, known) {
+  await api('POST',`/api/flashcards/${id}/review`,{known});
+  state.flashcards[state.flashcardIndex].known = known;
+  toast(known?'Marked as known ✓':'Marked for review','info');
+  nextCard();
+}
+
+// ── Quizzes ───────────────────────────────────────────────────────────────
+async function loadQuizMaterials() {
+  const courses = await api('GET','/api/courses');
+  const sel = document.getElementById('quiz-material-select');
+  sel.innerHTML = '<option value="">Select material…</option>';
+  for (const c of courses) {
+    const mats = await api('GET',`/api/courses/${c.id}/materials`);
+    if (mats.length) {
+      const og = document.createElement('optgroup');
+      og.label = c.name;
+      mats.forEach(m => { const o=document.createElement('option'); o.value=m.id; o.textContent=m.original_name; og.appendChild(o); });
+      sel.appendChild(og);
+    }
+  }
+}
+
+async function generateQuiz() {
+  const mid = document.getElementById('quiz-material-select').value;
+  if (!mid) { toast('Select a material','error'); return; }
+  const num = document.getElementById('quiz-num').value;
+  const type = document.getElementById('quiz-type').value;
+  document.getElementById('quiz-area').innerHTML = '<div class="loading-text"><div class="spinner"></div> Generating quiz with AI…</div>';
+  const r = await api('POST',`/api/materials/${mid}/generate-quiz`,{num_questions:parseInt(num),type});
+  if (r.error) { document.getElementById('quiz-area').innerHTML = `<div class="text-danger card">${r.error}</div>`; return; }
+  state.quizData = r;
+  renderQuiz(r);
+}
+
+function renderQuiz(quiz) {
+  const el = document.getElementById('quiz-area');
+  el.innerHTML = `
+    <div class="card mb-3"><h3>${quiz.title}</h3><p class="text-sm text-muted mt-2">${quiz.questions.length} questions</p></div>
+    ${quiz.questions.map((q,i) => `
+      <div class="quiz-question" id="q-${i}">
+        <div class="q-num">Question ${i+1}</div>
+        <div class="q-text">${q.question}</div>
+        ${q.type==='mc' ? q.options.map((o,j) => `<div class="q-option" onclick="selectAnswer(${i},${j})" id="opt-${i}-${j}">${o}</div>`).join('') :
+          `<div class="q-option" onclick="selectAnswer(${i},true)" id="opt-${i}-true">True</div>
+           <div class="q-option" onclick="selectAnswer(${i},false)" id="opt-${i}-false">False</div>`}
+      </div>`).join('')}
+    <button class="btn btn-primary mt-3" onclick="submitQuiz(${quiz.id})">Submit Quiz</button>`;
+  el.dataset.answers = JSON.stringify(new Array(quiz.questions.length).fill(null));
+  el.dataset.start = Date.now();
+}
+
+function selectAnswer(qi, ans) {
+  const quizArea = document.getElementById('quiz-area');
+  let answers = JSON.parse(quizArea.dataset.answers);
+  answers[qi] = ans;
+  quizArea.dataset.answers = JSON.stringify(answers);
+  // Visual
+  const q = document.getElementById('q-'+qi);
+  q.querySelectorAll('.q-option').forEach(o => o.classList.remove('selected'));
+  const key = `opt-${qi}-${ans}`;
+  document.getElementById(key)?.classList.add('selected');
+}
+
+async function submitQuiz(qid) {
+  const quizArea = document.getElementById('quiz-area');
+  const answers = JSON.parse(quizArea.dataset.answers||'[]');
+  const timeTaken = Math.round((Date.now() - parseInt(quizArea.dataset.start||Date.now())) / 1000);
+  const r = await api('POST',`/api/quizzes/${qid}/submit`,{answers,time_taken:timeTaken});
+  if (r.error) { toast(r.error,'error'); return; }
+  // Show results
+  const q = state.quizData;
+  const color = r.score>=70?'var(--success)':r.score>=50?'var(--warning)':'var(--danger)';
+  let html = `<div class="card mb-3" style="text-align:center;border-color:${color}">
+    <div style="font-size:48px;font-family:'Syne',sans-serif;font-weight:800;color:${color}">${r.score.toFixed(0)}%</div>
+    <div class="text-sm text-muted">${r.correct} / ${r.total} correct · ${timeTaken}s</div>
+  </div>`;
+  q.questions.forEach((question, i) => {
+    const res = r.results[i];
+    html += `<div class="quiz-question">
+      <div class="q-num">Q${i+1} — ${res.correct?'<span class="text-success">✓ Correct</span>':'<span class="text-danger">✗ Wrong</span>'}</div>
+      <div class="q-text">${question.question}</div>
+      ${question.type==='mc' ? question.options.map((o,j)=>`<div class="q-option ${j===question.correct?'correct':j===res.user_answer&&!res.correct?'wrong':''}">${o}</div>`).join('') :
+        `<div class="q-option ${question.correct===true?'correct':''} ${res.user_answer===true&&!res.correct?'wrong':''}">True</div>
+         <div class="q-option ${question.correct===false?'correct':''} ${res.user_answer===false&&!res.correct?'wrong':''}">False</div>`}
+      ${res.explanation?`<div style="margin-top:10px;font-size:13px;color:var(--muted);background:var(--surface);padding:10px;border-radius:8px">💡 ${res.explanation}</div>`:''}
+    </div>`;
+  });
+  html += `<button class="btn btn-primary mt-3" onclick="generateQuiz()">Take Another Quiz</button>`;
+  document.getElementById('quiz-area').innerHTML = html;
+  toast(`Quiz completed! Score: ${r.score.toFixed(0)}%`, r.score>=70?'success':'info');
+  loadDashboard();
+}
+
+function switchQuizTab(t) {
+  document.getElementById('quiz-tab-take').style.display = t==='take'?'block':'none';
+  document.getElementById('quiz-tab-history').style.display = t==='history'?'block':'none';
+  document.querySelectorAll('#page-quizzes .tab').forEach((b,i)=>b.classList.toggle('active',(i===0&&t==='take')||(i===1&&t==='history')));
+  if (t==='history') loadQuizHistory();
+}
+
+async function loadQuizHistory() {
+  const attempts = await api('GET','/api/quizzes/history');
+  const el = document.getElementById('quiz-history-list');
+  if (!attempts.length) { el.innerHTML='<div class="empty-state"><div class="empty-icon">📊</div><div class="empty-title">No quiz history</div></div>'; return; }
+  el.innerHTML = attempts.map(a => {
+    const color = a.score>=70?'var(--success)':a.score>=50?'var(--warning)':'var(--danger)';
+    return `<div class="material-item">
+      <div class="file-icon" style="background:rgba(124,110,247,.15)">✏️</div>
+      <div>
+        <div class="material-name">${a.quiz_title}</div>
+        <div class="material-meta">${new Date(a.taken_at).toLocaleDateString()} · ${a.time_taken}s</div>
+      </div>
+      <div class="material-actions"><span style="font-family:'Syne';font-size:18px;font-weight:800;color:${color}">${a.score.toFixed(0)}%</span></div>
+    </div>`;
+  }).join('');
+}
+
+// ── Study Plan ────────────────────────────────────────────────────────────
+async function loadStudyPlan() {
+  const plan = await api('GET','/api/study-plan/latest');
+  if (plan) renderStudyPlan(plan);
+}
+
+async function generatePlan() {
+  document.getElementById('study-plan-area').innerHTML = '<div class="loading-text"><div class="spinner"></div> Generating personalized plan with AI…</div>';
+  const r = await api('POST','/api/study-plan/generate');
+  if (r.error) { document.getElementById('study-plan-area').innerHTML = `<div class="card text-danger">${r.error}</div>`; return; }
+  renderStudyPlan(r);
+  toast('Study plan generated!','success');
+}
+
+function renderStudyPlan(plan) {
+  const priorityColors = {high:'var(--danger)',medium:'var(--warning)',low:'var(--success)'};
+  const el = document.getElementById('study-plan-area');
+  el.innerHTML = `
+    <div class="card mb-3">
+      <div class="text-xs text-muted mb-1">WEEK THEME</div>
+      <h3>${plan.week_theme||'Personalized Study Plan'}</h3>
+      ${plan.tips?.length?`<div class="mt-3 flex gap-2 flex-wrap">${plan.tips.map(t=>`<span class="badge badge-accent">💡 ${t}</span>`).join('')}</div>`:''}
+    </div>
+    ${(plan.days||[]).map(d=>`
+      <div class="plan-day">
+        <div class="plan-day-name">${d.day} <span class="text-xs text-muted">(${d.total_minutes} min)</span></div>
+        ${(d.sessions||[]).map(s=>`
+          <div class="plan-session">
+            <div class="session-dot" style="background:${priorityColors[s.priority]||'var(--accent)'}"></div>
+            <div style="flex:1"><strong>${s.course}</strong> · ${s.topic}</div>
+            <div class="text-xs text-muted">${s.duration_min}min</div>
+            <span class="badge badge-accent">${s.activity}</span>
+          </div>`).join('')}
+      </div>`).join('')}`;
+}
+
+// ── Analytics ─────────────────────────────────────────────────────────────
+async function loadAnalytics() {
+  const data = await api('GET','/api/analytics');
+  const stats = document.getElementById('analytics-stats');
+  stats.innerHTML = `
+    <div class="stat-card" style="--c:var(--accent)"><div class="stat-icon">✏️</div><div class="stat-value">${data.total_quizzes}</div><div class="stat-label">Quizzes Taken</div></div>
+    <div class="stat-card" style="--c:var(--success)"><div class="stat-icon">📈</div><div class="stat-value">${data.avg_score}%</div><div class="stat-label">Average Score</div></div>
+    <div class="stat-card" style="--c:var(--accent2)"><div class="stat-icon">🃏</div><div class="stat-value">${data.known_flashcards}/${data.total_flashcards}</div><div class="stat-label">Flashcards Known</div></div>
+    <div class="stat-card" style="--c:var(--accent3)"><div class="stat-icon">📁</div><div class="stat-value">${data.total_materials}</div><div class="stat-label">Materials</div></div>`;
+  renderBarChart('analytics-chart', data.score_trend?.slice(-10).map(s=>({label:s.date.slice(5),value:s.score}))||[]);
+  const perf = document.getElementById('course-perf-list');
+  perf.innerHTML = (data.course_performance||[]).map(c=>`
+    <div class="mb-3">
+      <div class="flex justify-between items-center mb-2">
+        <span class="text-sm font-bold">${c.course}</span>
+        <span class="text-sm" style="color:${c.avg_score>=70?'var(--success)':c.avg_score>=50?'var(--warning)':'var(--danger)'}">${c.avg_score}%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${c.avg_score}%"></div></div>
+    </div>`).join('') || '<div class="text-muted text-sm">No quiz attempts yet</div>';
+  const mastery = document.getElementById('flashcard-mastery');
+  const pct = data.total_flashcards ? Math.round(data.known_flashcards/data.total_flashcards*100) : 0;
+  mastery.innerHTML = `
+    <div class="flex justify-between items-center mb-2"><span class="text-sm">${data.known_flashcards} of ${data.total_flashcards} cards mastered</span><span class="text-sm text-accent">${pct}%</span></div>
+    <div class="progress-bar" style="height:12px"><div class="progress-fill" style="width:${pct}%"></div></div>`;
+}
+
+// ── Notes ─────────────────────────────────────────────────────────────────
+async function loadNotes() {
+  const notes = await api('GET','/api/notes');
+  const el = document.getElementById('notes-list');
+  if (!notes.length) { el.innerHTML='<div class="empty-state"><div class="empty-icon">📝</div><div class="empty-title">No notes yet</div><button class="btn btn-primary btn-sm" onclick="showModal(\'modal-note\')">Create Note</button></div>'; return; }
+  el.innerHTML = notes.map(n=>`
+    <div class="material-item" onclick="openNote(${n.id})" style="cursor:pointer">
+      <div class="file-icon" style="background:rgba(124,110,247,.15)">📝</div>
+      <div>
+        <div class="material-name">${n.title}</div>
+        <div class="material-meta">${new Date(n.updated_at).toLocaleDateString()} ${n.tags?'· '+n.tags:''}</div>
+      </div>
+    </div>`).join('');
+}
+
+async function createNote() {
+  const title = document.getElementById('new-note-title').value;
+  if (!title) { toast('Enter a title','error'); return; }
+  const r = await api('POST','/api/notes',{title,course_id:document.getElementById('new-note-course').value||null,tags:document.getElementById('new-note-tags').value});
+  toast('Note created','success'); hideModal('modal-note');
+  document.getElementById('new-note-title').value=''; document.getElementById('new-note-tags').value='';
+  const notes = await api('GET','/api/notes');
+  const newNote = notes.find(n=>n.id===r.id);
+  if (newNote) openNote(newNote.id);
+  loadNotes();
+}
+
+async function openNote(id) {
+  const notes = await api('GET','/api/notes');
+  const note = notes.find(n=>n.id===id);
+  if (!note) return;
+  state.currentNoteId = id;
+  document.getElementById('note-edit-title').value = note.title;
+  document.getElementById('note-edit-content').value = note.content||'';
+  document.getElementById('note-editor').style.display='block';
+  document.getElementById('notes-layout').style.gridTemplateColumns='1fr 1.5fr';
+}
+
+function closeNoteEditor() {
+  document.getElementById('note-editor').style.display='none';
+  state.currentNoteId = null;
+}
+
+async function saveNote() {
+  if (!state.currentNoteId) return;
+  await api('PUT',`/api/notes/${state.currentNoteId}`,{
+    title:document.getElementById('note-edit-title').value,
+    content:document.getElementById('note-edit-content').value
+  });
+  toast('Note saved','success'); loadNotes();
+}
+
+async function deleteCurrentNote() {
+  if (!state.currentNoteId || !confirm('Delete this note?')) return;
+  await api('DELETE',`/api/notes/${state.currentNoteId}`);
+  closeNoteEditor(); toast('Deleted','success'); loadNotes();
+}
+
+// ── Translate ─────────────────────────────────────────────────────────────
+async function doTranslate() {
+  const text = document.getElementById('trans-input').value;
+  const lang = document.getElementById('trans-lang').value;
+  if (!text) { toast('Enter text to translate','error'); return; }
+  document.getElementById('trans-output').innerHTML = '<div class="loading-text"><div class="spinner"></div> Translating…</div>';
+  const r = await api('POST','/api/translate',{text,language:lang});
+  if (r.error) { document.getElementById('trans-output').innerHTML = `<div class="text-danger">${r.error}</div>`; return; }
+  document.getElementById('trans-output').innerHTML = r.translated.replace(/\n/g,'<br>');
+  toast('Translated!','success');
+}
+
+function copyTranslation() {
+  navigator.clipboard.writeText(document.getElementById('trans-output').innerText);
+  toast('Copied!','success');
+}
+
+// ── Reminders ─────────────────────────────────────────────────────────────
+async function loadReminders() {
+  const reminders = await api('GET','/api/reminders');
+  const el = document.getElementById('reminders-list');
+  if (!reminders.length) { el.innerHTML='<div class="empty-state"><div class="empty-icon">🔔</div><div class="empty-title">No reminders</div><button class="btn btn-primary btn-sm" onclick="showModal(\'modal-reminder\')">Add Reminder</button></div>'; return; }
+  const now = new Date();
+  el.innerHTML = reminders.map(r => {
+    const due = new Date(r.due_date);
+    const overdue = !r.completed && due < now;
+    return `<div class="material-item" style="${r.completed?'opacity:.5':''}">
+      <div class="file-icon" style="background:${overdue?'rgba(248,113,113,.15)':'rgba(251,191,36,.15)'}">${r.completed?'✅':'🔔'}</div>
+      <div>
+        <div class="material-name">${r.title}</div>
+        <div class="material-meta ${overdue?'text-danger':''}">${due.toLocaleString()}</div>
+      </div>
+      ${!r.completed?`<button class="btn btn-success btn-sm" onclick="completeReminder(${r.id})">Done</button>`:''}
+    </div>`;
+  }).join('');
+}
+
+async function createReminder() {
+  const title = document.getElementById('rem-title').value;
+  const due = document.getElementById('rem-date').value;
+  if (!title||!due) { toast('Fill in all fields','error'); return; }
+  await api('POST','/api/reminders',{title,due_date:due,course_id:document.getElementById('rem-course').value||null});
+  toast('Reminder set!','success'); hideModal('modal-reminder');
+  document.getElementById('rem-title').value=''; document.getElementById('rem-date').value='';
+  loadReminders();
+}
+
+async function completeReminder(id) {
+  await api('POST',`/api/reminders/${id}/complete`);
+  toast('Marked complete ✓','success'); loadReminders();
+}
+
+// ── Search ────────────────────────────────────────────────────────────────
+let searchTimeout;
+async function globalSearch(q) {
+  clearTimeout(searchTimeout);
+  const el = document.getElementById('search-results');
+  if (!q) { el.style.display='none'; return; }
+  searchTimeout = setTimeout(async () => {
+    const results = await api('GET',`/api/search?q=${encodeURIComponent(q)}`);
+    if (!results.length) { el.style.display='none'; return; }
+    el.style.display='block';
+    el.innerHTML = `<div class="card card-sm"><div class="text-xs text-muted mb-2">RESULTS</div>
+      ${results.map(r=>`<div class="material-item" style="cursor:pointer" onclick="searchNav('${r.type}',${r.id})">
+        <div class="file-icon" style="background:var(--surface2)">${r.type==='course'?'📚':r.type==='material'?'📁':'📝'}
+        <div><div class="material-name">${r.title}</div><div class="material-meta">${r.subtitle}</div></div>
+      </div>`).join('')}
+    </div>`;
+  }, 300);
+}
+
+function searchNav(type, id) {
+  document.getElementById('global-search').value='';
+  document.getElementById('search-results').style.display='none';
+  if (type==='course') viewCourse(id);
+  else if (type==='material') navTo('materials');
+  else if (type==='note') { navTo('notes'); setTimeout(()=>openNote(id),200); }
+}
 
 // ── Init ──────────────────────────────────────────────────────────────────
 checkAuth();
 </script>
 </body>
 </html>
+
