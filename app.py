@@ -682,32 +682,5 @@ def delete_note(nid):
     db.session.commit()
     return jsonify({'message': 'Deleted'})
 
-# ── Reminders ────────────────────────────────────────────────────────────────
 
-@app.route('/api/reminders', methods=['GET'])
-@login_required
-def get_reminders():
-    reminders = Reminder.query.filter_by(user_id=session['user_id'])\
-        .order_by(Reminder.due_date).all()
-    return jsonify([{'id': r.id, 'title': r.title, 'due_date': r.due_date.isoformat(),
-                     'completed': r.completed, 'course_id': r.course_id} for r in reminders])
-
-@app.route('/api/reminders', methods=['POST'])
-@login_required
-def create_reminder():
-    data = request.json
-    r = Reminder(user_id=session['user_id'], title=data['title'],
-                 due_date=datetime.datetime.fromisoformat(data['due_date']),
-                 course_id=data.get('course_id'))
-    db.session.add(r)
-    db.session.commit()
-    return jsonify({'id': r.id, 'message': 'Reminder created'})
-
-@app.route('/api/reminders/<int:rid>/complete', methods=['POST'])
-@login_required
-def complete_reminder(rid):
-    r = Reminder.query.filter_by(id=rid, user_id=session['user_id']).first_or_404()
-    r.completed = True
-    db.session.commit()
-    return jsonify({'message': 'Completed'})
 
