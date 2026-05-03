@@ -1,0 +1,1273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JEHDI.AI – Intelligent Learning Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0f;
+  --surface: #13131a;
+  --surface2: #1c1c26;
+  --border: #2a2a38;
+  --accent: #7c6ef7;
+  --accent2: #f06aab;
+  --accent3: #3ecfcf;
+  --text: #e8e8f0;
+  --muted: #7a7a96;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --radius: 12px;
+  --radius-lg: 20px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+h1,h2,h3,h4{font-family:'Syne',sans-serif;}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-track{background:var(--surface);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+
+/* ── Auth Screen ── */
+#auth-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg);position:relative;overflow:hidden;}
+#auth-screen::before{content:'';position:absolute;width:600px;height:600px;background:radial-gradient(circle,rgba(124,110,247,.15) 0%,transparent 70%);top:-100px;left:-100px;pointer-events:none;}
+#auth-screen::after{content:'';position:absolute;width:400px;height:400px;background:radial-gradient(circle,rgba(240,106,171,.12) 0%,transparent 70%);bottom:-80px;right:-80px;pointer-events:none;}
+.auth-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:48px;width:440px;max-width:95vw;position:relative;z-index:1;}
+.auth-logo{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px;}
+.auth-sub{color:var(--muted);font-size:14px;margin-bottom:32px;}
+.auth-tabs{display:flex;gap:4px;background:var(--bg);border-radius:10px;padding:4px;margin-bottom:28px;}
+.auth-tab{flex:1;padding:8px 16px;border:none;background:transparent;color:var(--muted);cursor:pointer;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;transition:.2s;}
+.auth-tab.active{background:var(--accent);color:#fff;}
+.form-group{margin-bottom:18px;}
+.form-label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;font-weight:500;}
+.form-input{width:100%;padding:12px 16px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:.2s;}
+.form-input:focus{border-color:var(--accent);}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:11px 20px;border:none;border-radius:var(--radius);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;transition:.2s;text-decoration:none;}
+.btn-primary{background:var(--accent);color:#fff;width:100%;justify-content:center;}
+.btn-primary:hover{background:#6c5ef0;transform:translateY(-1px);}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent);}
+.btn-sm{padding:7px 14px;font-size:13px;}
+.btn-danger{background:rgba(248,113,113,.15);color:var(--danger);border:1px solid rgba(248,113,113,.3);}
+.btn-success{background:rgba(52,211,153,.15);color:var(--success);border:1px solid rgba(52,211,153,.3);}
+.btn-accent2{background:var(--accent2);color:#fff;}
+.btn-accent3{background:var(--accent3);color:#000;}
+
+/* ── App Layout ── */
+#app{display:none;min-height:100vh;}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:240px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;}
+.sidebar-logo{padding:24px 20px;font-family:'Syne',sans-serif;font-size:22px;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.sidebar-nav{flex:1;padding:8px 12px;overflow-y:auto;}
+.nav-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;cursor:pointer;color:var(--muted);transition:.2s;margin-bottom:2px;font-size:14px;font-weight:500;}
+.nav-item:hover{background:var(--surface2);color:var(--text);}
+.nav-item.active{background:rgba(124,110,247,.15);color:var(--accent);}
+.nav-icon{font-size:18px;width:20px;text-align:center;}
+.sidebar-bottom{padding:16px;border-top:1px solid var(--border);}
+.user-badge{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;background:var(--surface2);}
+.user-avatar{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;}
+.user-name{font-size:13px;font-weight:600;}
+.user-email{font-size:11px;color:var(--muted);}
+.main{margin-left:240px;min-height:100vh;padding:32px;}
+.page{display:none;}
+.page.active{display:block;animation:fadeIn .3s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;}
+.page-title{font-size:26px;font-weight:800;}
+.page-sub{color:var(--muted);font-size:14px;margin-top:4px;}
+
+/* ── Cards ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;}
+.card-sm{padding:16px;}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+
+/* ── Stat Cards ── */
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;position:relative;overflow:hidden;}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--c,var(--accent));}
+.stat-value{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;margin-bottom:4px;}
+.stat-label{font-size:13px;color:var(--muted);}
+.stat-icon{position:absolute;right:20px;top:20px;font-size:28px;opacity:.3;}
+
+/* ── Course Cards ── */
+.course-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;cursor:pointer;transition:.2s;}
+.course-card:hover{transform:translateY(-3px);border-color:var(--accent);}
+.course-header{height:80px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:28px;}
+.course-body{padding:16px;}
+.course-name{font-size:16px;font-weight:700;margin-bottom:4px;}
+.course-meta{font-size:12px;color:var(--muted);}
+.course-stats{display:flex;gap:12px;margin-top:12px;}
+.course-stat{font-size:11px;color:var(--muted);}
+
+/* ── Badges ── */
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+.badge-accent{background:rgba(124,110,247,.2);color:var(--accent);}
+.badge-success{background:rgba(52,211,153,.2);color:var(--success);}
+.badge-warning{background:rgba(251,191,36,.2);color:var(--warning);}
+.badge-danger{background:rgba(248,113,113,.2);color:var(--danger);}
+
+/* ── Progress ── */
+.progress-bar{height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+.progress-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:.5s;}
+
+/* ── Modal ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.modal-overlay.active{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:32px;width:540px;max-width:95vw;max-height:90vh;overflow-y:auto;position:relative;}
+.modal-title{font-size:20px;font-weight:800;margin-bottom:20px;}
+.modal-close{position:absolute;top:20px;right:20px;background:var(--surface2);border:none;color:var(--muted);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:16px;}
+.modal-close:hover{color:var(--text);}
+
+/* ── Tags ── */
+.tag-row{display:flex;flex-wrap:wrap;gap:8px;}
+.tag{padding:5px 12px;background:var(--surface2);border-radius:20px;font-size:12px;cursor:pointer;border:1px solid var(--border);}
+.tag.selected{background:rgba(124,110,247,.2);border-color:var(--accent);color:var(--accent);}
+
+/* ── Search Bar ── */
+.search-bar{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 16px;margin-bottom:24px;}
+.search-bar input{flex:1;background:none;border:none;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;}
+.search-icon{color:var(--muted);font-size:16px;}
+
+/* ── Material List ── */
+.material-item{display:flex;align-items:center;gap:14px;padding:14px;background:var(--surface2);border-radius:var(--radius);margin-bottom:10px;border:1px solid var(--border);}
+.file-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.material-name{font-size:14px;font-weight:600;}
+.material-meta{font-size:12px;color:var(--muted);}
+.material-actions{margin-left:auto;display:flex;gap:8px;}
+
+/* ── Quiz ── */
+.quiz-question{background:var(--surface2);border-radius:var(--radius-lg);padding:24px;margin-bottom:16px;}
+.q-num{font-size:12px;color:var(--accent);font-weight:600;margin-bottom:8px;}
+.q-text{font-size:16px;font-weight:600;margin-bottom:16px;}
+.q-option{padding:12px 16px;background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);margin-bottom:8px;cursor:pointer;transition:.2s;font-size:14px;}
+.q-option:hover{border-color:var(--accent);}
+.q-option.selected{border-color:var(--accent);background:rgba(124,110,247,.1);}
+.q-option.correct{border-color:var(--success);background:rgba(52,211,153,.1);}
+.q-option.wrong{border-color:var(--danger);background:rgba(248,113,113,.1);}
+
+/* ── Flashcard ── */
+.flashcard-container{perspective:1000px;height:280px;cursor:pointer;margin-bottom:16px;}
+.flashcard-inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .5s;}
+.flashcard-container.flipped .flashcard-inner{transform:rotateY(180deg);}
+.flashcard-face{position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;padding:32px;text-align:center;border:1px solid var(--border);}
+.card-front{background:var(--surface);font-size:18px;font-weight:600;}
+.card-back{background:linear-gradient(135deg,rgba(124,110,247,.1),rgba(240,106,171,.1));transform:rotateY(180deg);font-size:15px;color:var(--muted);}
+.flashcard-hint{text-align:center;font-size:12px;color:var(--muted);margin-bottom:20px;}
+
+/* ── Chart ── */
+.chart-bar{display:flex;align-items:flex-end;gap:8px;height:140px;padding:10px 0;}
+.bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;}
+.bar{width:100%;border-radius:6px 6px 0 0;transition:.5s;min-height:4px;}
+.bar-label{font-size:10px;color:var(--muted);text-align:center;}
+.bar-val{font-size:10px;font-weight:600;text-align:center;}
+
+/* ── Study Plan ── */
+.plan-day{background:var(--surface2);border-radius:var(--radius);padding:16px;margin-bottom:12px;border-left:3px solid var(--accent);}
+.plan-day-name{font-weight:700;font-size:14px;margin-bottom:10px;color:var(--accent);}
+.plan-session{display:flex;align-items:center;gap:10px;padding:8px;background:var(--surface);border-radius:8px;margin-bottom:6px;font-size:13px;}
+.session-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+
+/* ── Toast ── */
+#toast{position:fixed;bottom:28px;right:28px;z-index:9999;display:flex;flex-direction:column;gap:8px;}
+.toast-item{padding:12px 20px;border-radius:var(--radius);font-size:13px;font-weight:500;animation:slideIn .3s ease;max-width:320px;}
+.toast-success{background:#1a3a2e;color:var(--success);border:1px solid rgba(52,211,153,.3);}
+.toast-error{background:#3a1a1a;color:var(--danger);border:1px solid rgba(248,113,113,.3);}
+.toast-info{background:#1a1a3a;color:#a5b4fc;border:1px solid rgba(165,180,252,.3);}
+@keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+
+/* ── Tabs ── */
+.tabs{display:flex;gap:4px;background:var(--surface2);border-radius:10px;padding:4px;margin-bottom:24px;width:fit-content;}
+.tab{padding:8px 18px;border-radius:8px;border:none;background:transparent;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;transition:.2s;}
+.tab.active{background:var(--accent);color:#fff;}
+
+/* ── Loading ── */
+.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;display:inline-block;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:14px;padding:24px;justify-content:center;}
+
+/* ── Empty State ── */
+.empty-state{text-align:center;padding:48px 24px;}
+.empty-icon{font-size:48px;margin-bottom:16px;}
+.empty-title{font-size:18px;font-weight:700;margin-bottom:8px;}
+.empty-sub{color:var(--muted);font-size:14px;margin-bottom:20px;}
+
+/* ── Select ── */
+select{width:100%;padding:11px 16px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;cursor:pointer;}
+select:focus{border-color:var(--accent);}
+
+/* ── Textarea ── */
+textarea{width:100%;padding:12px 16px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;resize:vertical;min-height:100px;}
+textarea:focus{border-color:var(--accent);}
+
+/* ── Analytics Chart ── */
+.donut-wrap{display:flex;align-items:center;gap:24px;}
+.donut-legend{display:flex;flex-direction:column;gap:8px;}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:13px;}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+
+/* ── Responsive ── */
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%);}
+  .main{margin-left:0;padding:16px;}
+  .grid-2,.grid-3,.grid-4{grid-template-columns:1fr;}
+}
+
+.divider{border:none;border-top:1px solid var(--border);margin:20px 0;}
+.flex{display:flex;}.items-center{align-items:center;}.gap-2{gap:8px;}.gap-3{gap:12px;}.justify-between{justify-content:space-between;}.flex-1{flex:1;}.mt-2{margin-top:8px;}.mt-3{margin-top:12px;}.mt-4{margin-top:16px;}.mb-2{margin-bottom:8px;}.mb-3{margin-bottom:12px;}
+.text-sm{font-size:13px;}.text-xs{font-size:11px;}.text-muted{color:var(--muted);}.text-accent{color:var(--accent);}.text-success{color:var(--success);}.text-danger{color:var(--danger);}
+.font-bold{font-weight:700;}.w-full{width:100%;}
+</style>
+</head>
+<body>
+
+<!-- Auth Screen -->
+<div id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-logo">JEHDI.AI ✦</div>
+    <p class="auth-sub">Your intelligent learning companion</p>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchAuthTab('login')">Sign In</button>
+      <button class="auth-tab" onclick="switchAuthTab('register')">Sign Up</button>
+    </div>
+    <!-- Login -->
+    <div id="login-form">
+      <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" id="login-email" placeholder="you@example.com"></div>
+      <div class="form-group"><label class="form-label">Password</label><input class="form-input" type="password" id="login-pass" placeholder="••••••••"></div>
+      <button class="btn btn-primary" onclick="doLogin()">Sign In</button>
+    </div>
+    <!-- Register -->
+    <div id="register-form" style="display:none">
+      <div class="form-group"><label class="form-label">Username</label><input class="form-input" type="text" id="reg-user" placeholder="coolstudent"></div>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" id="reg-email" placeholder="you@example.com"></div>
+      <div class="form-group"><label class="form-label">Password</label><input class="form-input" type="password" id="reg-pass" placeholder="••••••••"></div>
+      <button class="btn btn-primary" onclick="doRegister()">Create Account</button>
+    </div>
+    <p class="text-xs text-muted mt-3" style="text-align:center">Demo: use any email/password to register</p>
+  </div>
+</div>
+
+<!-- Main App -->
+<div id="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">JEHDI.AI ✦</div>
+    <nav class="sidebar-nav">
+      <div class="nav-item active" onclick="navTo('dashboard')" id="nav-dashboard"><span class="nav-icon">⊞</span> Dashboard</div>
+      <div class="nav-item" onclick="navTo('courses')" id="nav-courses"><span class="nav-icon">📚</span> Courses</div>
+      <div class="nav-item" onclick="navTo('materials')" id="nav-materials"><span class="nav-icon">📁</span> Materials</div>
+      <div class="nav-item" onclick="navTo('flashcards')" id="nav-flashcards"><span class="nav-icon">🃏</span> Flashcards</div>
+      <div class="nav-item" onclick="navTo('quizzes')" id="nav-quizzes"><span class="nav-icon">✏️</span> Quizzes</div>
+      <div class="nav-item" onclick="navTo('study-plan')" id="nav-study-plan"><span class="nav-icon">📅</span> Study Plan</div>
+      <div class="nav-item" onclick="navTo('analytics')" id="nav-analytics"><span class="nav-icon">📊</span> Analytics</div>
+      <div class="nav-item" onclick="navTo('notes')" id="nav-notes"><span class="nav-icon">📝</span> Notes</div>
+      <div class="nav-item" onclick="navTo('translate')" id="nav-translate"><span class="nav-icon">🌐</span> Translate</div>
+      <div class="nav-item" onclick="navTo('reminders')" id="nav-reminders"><span class="nav-icon">🔔</span> Reminders</div>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="user-badge">
+        <div class="user-avatar" id="sidebar-avatar">?</div>
+        <div>
+          <div class="user-name" id="sidebar-username">Loading…</div>
+          <div class="user-email" id="sidebar-email"></div>
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-sm w-full mt-2" onclick="doLogout()">Sign Out</button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main">
+
+    <!-- ── DASHBOARD ── -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Good morning! 👋</h1>
+          <p class="page-sub">Here's your study overview</p>
+        </div>
+        <div class="flex gap-2">
+          <input class="form-input" id="global-search" placeholder="Search anything…" oninput="globalSearch(this.value)" style="width:240px">
+        </div>
+      </div>
+      <div id="search-results" style="display:none;margin-bottom:20px;"></div>
+      <div class="grid-4 mb-3" id="stats-row">
+        <div class="stat-card" style="--c:var(--accent)"><div class="stat-icon">📚</div><div class="stat-value" id="stat-courses">–</div><div class="stat-label">Courses</div></div>
+        <div class="stat-card" style="--c:var(--accent2)"><div class="stat-icon">📁</div><div class="stat-value" id="stat-materials">–</div><div class="stat-label">Materials</div></div>
+        <div class="stat-card" style="--c:var(--accent3)"><div class="stat-icon">🃏</div><div class="stat-value" id="stat-flashcards">–</div><div class="stat-label">Flashcards</div></div>
+        <div class="stat-card" style="--c:var(--success)"><div class="stat-icon">✏️</div><div class="stat-value" id="stat-avg">–</div><div class="stat-label">Avg Quiz Score</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="flex justify-between items-center mb-3">
+            <h3>Recent Quiz Performance</h3>
+          </div>
+          <div class="chart-bar" id="dash-chart"></div>
+        </div>
+        <div class="card">
+          <div class="flex justify-between items-center mb-3">
+            <h3>Quick Actions</h3>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <button class="btn btn-primary" onclick="navTo('courses');showModal('modal-course')">➕ New Course</button>
+            <button class="btn btn-ghost" onclick="navTo('materials')">📤 Upload Material</button>
+            <button class="btn btn-ghost" onclick="navTo('study-plan');generatePlan()">📅 Generate Study Plan</button>
+            <button class="btn btn-ghost" onclick="navTo('analytics')">📊 View Analytics</button>
+          </div>
+        </div>
+      </div>
+      <div class="card mt-4">
+        <div class="flex justify-between items-center mb-3">
+          <h3>My Courses</h3>
+          <button class="btn btn-ghost btn-sm" onclick="navTo('courses')">View all →</button>
+        </div>
+        <div class="grid-3" id="dash-courses"></div>
+      </div>
+    </div>
+
+    <!-- ── COURSES ── -->
+    <div class="page" id="page-courses">
+      <div class="page-header">
+        <div><h1 class="page-title">Courses</h1><p class="page-sub">Organize your study materials</p></div>
+        <button class="btn btn-primary" onclick="showModal('modal-course')">➕ New Course</button>
+      </div>
+      <div class="grid-3" id="courses-grid"></div>
+    </div>
+
+    <!-- ── MATERIALS ── -->
+    <div class="page" id="page-materials">
+      <div class="page-header">
+        <div><h1 class="page-title">Materials</h1><p class="page-sub">Upload and manage study files</p></div>
+        <button class="btn btn-primary" onclick="showModal('modal-upload')">📤 Upload File</button>
+      </div>
+      <div class="form-group" style="max-width:300px">
+        <select id="mat-course-filter" onchange="loadMaterials()">
+          <option value="">All Courses</option>
+        </select>
+      </div>
+      <div id="materials-list"></div>
+    </div>
+
+    <!-- ── FLASHCARDS ── -->
+    <div class="page" id="page-flashcards">
+      <div class="page-header">
+        <div><h1 class="page-title">Flashcards</h1><p class="page-sub">Review and memorize key concepts</p></div>
+      </div>
+      <div class="form-group" style="max-width:300px;margin-bottom:20px">
+        <select id="fc-course-filter" onchange="loadFlashcards()">
+          <option value="">Select Course</option>
+        </select>
+      </div>
+      <div id="flashcard-area">
+        <div class="empty-state"><div class="empty-icon">🃏</div><div class="empty-title">Select a course</div><div class="empty-sub">Choose a course to review its flashcards</div></div>
+      </div>
+    </div>
+
+    <!-- ── QUIZZES ── -->
+    <div class="page" id="page-quizzes">
+      <div class="page-header">
+        <div><h1 class="page-title">Quizzes</h1><p class="page-sub">Test your knowledge</p></div>
+      </div>
+      <div class="tabs">
+        <button class="tab active" onclick="switchQuizTab('take')">Take Quiz</button>
+        <button class="tab" onclick="switchQuizTab('history')">History</button>
+      </div>
+      <div id="quiz-tab-take">
+        <div class="form-group" style="max-width:320px">
+          <label class="form-label">Select Material</label>
+          <select id="quiz-material-select"></select>
+        </div>
+        <div class="grid-2" style="max-width:500px;margin-bottom:16px">
+          <div class="form-group"><label class="form-label">Questions</label><select id="quiz-num"><option value="5">5</option><option value="10">10</option><option value="15">15</option></select></div>
+          <div class="form-group"><label class="form-label">Type</label><select id="quiz-type"><option value="mixed">Mixed</option><option value="mc">Multiple Choice</option><option value="truefalse">True/False</option></select></div>
+        </div>
+        <button class="btn btn-primary" style="width:auto" onclick="generateQuiz()">⚡ Generate Quiz</button>
+        <div id="quiz-area" class="mt-4"></div>
+      </div>
+      <div id="quiz-tab-history" style="display:none">
+        <div id="quiz-history-list"></div>
+      </div>
+    </div>
+
+    <!-- ── STUDY PLAN ── -->
+    <div class="page" id="page-study-plan">
+      <div class="page-header">
+        <div><h1 class="page-title">Study Plan</h1><p class="page-sub">AI-personalized weekly schedule</p></div>
+        <button class="btn btn-primary" onclick="generatePlan()">⚡ Generate New Plan</button>
+      </div>
+      <div id="study-plan-area">
+        <div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">No study plan yet</div><div class="empty-sub">Click Generate to create a personalized plan</div></div>
+      </div>
+    </div>
+
+    <!-- ── ANALYTICS ── -->
+    <div class="page" id="page-analytics">
+      <div class="page-header"><div><h1 class="page-title">Analytics</h1><p class="page-sub">Track your progress</p></div></div>
+      <div class="grid-4 mb-3" id="analytics-stats"></div>
+      <div class="grid-2">
+        <div class="card">
+          <h3 style="margin-bottom:16px">Score Trend</h3>
+          <div class="chart-bar" id="analytics-chart"></div>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:16px">Course Performance</h3>
+          <div id="course-perf-list"></div>
+        </div>
+      </div>
+      <div class="card mt-4">
+        <h3 style="margin-bottom:16px">Flashcard Mastery</h3>
+        <div id="flashcard-mastery"></div>
+      </div>
+    </div>
+
+    <!-- ── NOTES ── -->
+    <div class="page" id="page-notes">
+      <div class="page-header">
+        <div><h1 class="page-title">Notes</h1><p class="page-sub">Edit and organize your notes</p></div>
+        <button class="btn btn-primary" onclick="showModal('modal-note')">➕ New Note</button>
+      </div>
+      <div class="grid-2" id="notes-layout">
+        <div id="notes-list"></div>
+        <div id="note-editor" style="display:none">
+          <div class="card">
+            <input class="form-input mb-2" id="note-edit-title" placeholder="Note title">
+            <textarea id="note-edit-content" style="min-height:300px" placeholder="Write your notes here…"></textarea>
+            <div class="flex gap-2 mt-3">
+              <button class="btn btn-primary btn-sm" onclick="saveNote()">Save</button>
+              <button class="btn btn-ghost btn-sm" onclick="closeNoteEditor()">Cancel</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteCurrentNote()">Delete</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TRANSLATE ── -->
+    <div class="page" id="page-translate">
+      <div class="page-header"><div><h1 class="page-title">Translate</h1><p class="page-sub">Translate study materials into any language</p></div></div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="form-group"><label class="form-label">Target Language</label>
+            <select id="trans-lang">
+              <option>Spanish</option><option>French</option><option>German</option><option>Italian</option><option>Portuguese</option><option>Chinese (Simplified)</option><option>Japanese</option><option>Korean</option><option>Arabic</option><option>Hindi</option><option>Russian</option>
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label">Text to Translate</label><textarea id="trans-input" placeholder="Paste your study material here…" style="min-height:200px"></textarea></div>
+          <button class="btn btn-primary" onclick="doTranslate()">🌐 Translate</button>
+        </div>
+        <div class="card">
+          <div class="flex justify-between items-center mb-3"><label class="form-label">Translation</label><button class="btn btn-ghost btn-sm" onclick="copyTranslation()">Copy</button></div>
+          <div id="trans-output" style="min-height:200px;font-size:14px;line-height:1.7;color:var(--muted)">Translation will appear here…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── REMINDERS ── -->
+    <div class="page" id="page-reminders">
+      <div class="page-header">
+        <div><h1 class="page-title">Reminders</h1><p class="page-sub">Stay on top of your schedule</p></div>
+        <button class="btn btn-primary" onclick="showModal('modal-reminder')">➕ Add Reminder</button>
+      </div>
+      <div id="reminders-list"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ── MODALS ── -->
+
+<!-- New Course -->
+<div class="modal-overlay" id="modal-course">
+  <div class="modal">
+    <button class="modal-close" onclick="hideModal('modal-course')">✕</button>
+    <h2 class="modal-title">New Course</h2>
+    <div class="form-group"><label class="form-label">Course Name</label><input class="form-input" id="course-name" placeholder="e.g. Calculus 101"></div>
+    <div class="form-group"><label class="form-label">Description</label><input class="form-input" id="course-desc" placeholder="Brief description…"></div>
+    <div class="form-group"><label class="form-label">Color</label>
+      <div class="tag-row" id="color-picker">
+        <div class="tag selected" data-color="#7c6ef7" style="background:rgba(124,110,247,.2);border-color:#7c6ef7;color:#7c6ef7" onclick="selectColor(this,'#7c6ef7')">Purple</div>
+        <div class="tag" data-color="#f06aab" onclick="selectColor(this,'#f06aab')">Pink</div>
+        <div class="tag" data-color="#3ecfcf" onclick="selectColor(this,'#3ecfcf')">Teal</div>
+        <div class="tag" data-color="#fbbf24" onclick="selectColor(this,'#fbbf24')">Gold</div>
+        <div class="tag" data-color="#34d399" onclick="selectColor(this,'#34d399')">Green</div>
+        <div class="tag" data-color="#f87171" onclick="selectColor(this,'#f87171')">Red</div>
+      </div>
+    </div>
+    <button class="btn btn-primary mt-3" onclick="createCourse()">Create Course</button>
+  </div>
+</div>
+
+<!-- Upload Material -->
+<div class="modal-overlay" id="modal-upload">
+  <div class="modal">
+    <button class="modal-close" onclick="hideModal('modal-upload')">✕</button>
+    <h2 class="modal-title">Upload Material</h2>
+    <div class="form-group"><label class="form-label">Course</label><select id="upload-course"></select></div>
+    <div class="form-group"><label class="form-label">Topic (optional)</label><select id="upload-topic"><option value="">None</option></select></div>
+    <div class="form-group">
+      <label class="form-label">File</label>
+      <div style="border:2px dashed var(--border);border-radius:var(--radius);padding:32px;text-align:center;cursor:pointer;" onclick="document.getElementById('file-input').click()">
+        <div style="font-size:32px;margin-bottom:8px">📤</div>
+        <div style="font-size:14px;color:var(--muted)">Click to select a file</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">PDF, TXT, DOCX, PPTX, images</div>
+        <input type="file" id="file-input" style="display:none" onchange="fileSelected(this)" accept=".pdf,.txt,.docx,.pptx,.png,.jpg,.jpeg">
+      </div>
+      <div id="selected-file-name" style="font-size:13px;color:var(--accent);margin-top:8px;"></div>
+    </div>
+    <button class="btn btn-primary" onclick="uploadMaterial()">Upload</button>
+  </div>
+</div>
+
+<!-- New Note -->
+<div class="modal-overlay" id="modal-note">
+  <div class="modal">
+    <button class="modal-close" onclick="hideModal('modal-note')">✕</button>
+    <h2 class="modal-title">New Note</h2>
+    <div class="form-group"><label class="form-label">Title</label><input class="form-input" id="new-note-title" placeholder="Note title…"></div>
+    <div class="form-group"><label class="form-label">Course (optional)</label><select id="new-note-course"><option value="">None</option></select></div>
+    <div class="form-group"><label class="form-label">Tags (comma separated)</label><input class="form-input" id="new-note-tags" placeholder="math, formulas, exam1"></div>
+    <button class="btn btn-primary" onclick="createNote()">Create Note</button>
+  </div>
+</div>
+
+<!-- New Reminder -->
+<div class="modal-overlay" id="modal-reminder">
+  <div class="modal">
+    <button class="modal-close" onclick="hideModal('modal-reminder')">✕</button>
+    <h2 class="modal-title">Add Reminder</h2>
+    <div class="form-group"><label class="form-label">Title</label><input class="form-input" id="rem-title" placeholder="e.g. Study for midterm"></div>
+    <div class="form-group"><label class="form-label">Due Date & Time</label><input class="form-input" type="datetime-local" id="rem-date"></div>
+    <div class="form-group"><label class="form-label">Course (optional)</label><select id="rem-course"><option value="">None</option></select></div>
+    <button class="btn btn-primary" onclick="createReminder()">Add Reminder</button>
+  </div>
+</div>
+
+<!-- Material Detail -->
+<div class="modal-overlay" id="modal-material">
+  <div class="modal" style="width:600px">
+    <button class="modal-close" onclick="hideModal('modal-material')">✕</button>
+    <h2 class="modal-title" id="mat-modal-title">Material</h2>
+    <div class="tabs" style="margin-bottom:16px">
+      <button class="tab active" onclick="switchMatTab('summary')">Summary</button>
+      <button class="tab" onclick="switchMatTab('concepts')">Key Concepts</button>
+      <button class="tab" onclick="switchMatTab('generate')">Generate</button>
+    </div>
+    <div id="mat-tab-summary"><div id="mat-summary-content" class="text-sm" style="line-height:1.7"></div></div>
+    <div id="mat-tab-concepts" style="display:none"><div id="mat-concepts-content"></div></div>
+    <div id="mat-tab-generate" style="display:none">
+      <div class="flex gap-2 flex-wrap">
+        <button class="btn btn-accent2 btn-sm" onclick="processAndShow()">⚡ Extract Key Info</button>
+        <button class="btn btn-primary btn-sm" onclick="genQuizFromModal()">✏️ Generate Quiz</button>
+        <button class="btn btn-ghost btn-sm" onclick="genFlashcardsFromModal()">🃏 Generate Flashcards</button>
+      </div>
+      <div id="gen-output" class="mt-3"></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────
+let state = { user: null, courses: [], selectedCourse: null, selectedColor: '#7c6ef7', currentMaterialId: null, currentNoteId: null, quizData: null, flashcards: [], flashcardIndex: 0 };
+
+// ── API ───────────────────────────────────────────────────────────────────
+async function api(method, url, body=null, isForm=false) {
+  const opts = { method, headers: {} };
+  if (body && !isForm) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+  else if (isForm) { opts.body = body; }
+  const r = await fetch(url, opts);
+  return r.json();
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────
+function toast(msg, type='info') {
+  const el = document.createElement('div');
+  el.className = `toast-item toast-${type}`;
+  el.textContent = msg;
+  document.getElementById('toast').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// ── Auth ──────────────────────────────────────────────────────────────────
+function switchAuthTab(t) {
+  document.querySelectorAll('.auth-tab').forEach((b,i) => b.classList.toggle('active', (i===0&&t==='login')||(i===1&&t==='register')));
+  document.getElementById('login-form').style.display = t==='login'?'block':'none';
+  document.getElementById('register-form').style.display = t==='register'?'block':'none';
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value;
+  const password = document.getElementById('login-pass').value;
+  if (!email || !password) { toast('Fill in all fields', 'error'); return; }
+  const r = await api('POST','/api/login',{email,password});
+  if (r.error) { toast(r.error,'error'); return; }
+  state.user = r.user;
+  showApp();
+}
+
+async function doRegister() {
+  const username = document.getElementById('reg-user').value;
+  const email = document.getElementById('reg-email').value;
+  const password = document.getElementById('reg-pass').value;
+  if (!username||!email||!password) { toast('Fill in all fields','error'); return; }
+  const r = await api('POST','/api/register',{username,email,password});
+  if (r.error) { toast(r.error,'error'); return; }
+  state.user = r.user;
+  showApp();
+}
+
+async function doLogout() {
+  await api('POST','/api/logout');
+  state.user = null;
+  document.getElementById('app').style.display='none';
+  document.getElementById('auth-screen').style.display='flex';
+}
+
+async function checkAuth() {
+  const r = await api('GET','/api/me');
+  if (r.authenticated) { state.user = r.user; showApp(); }
+}
+
+function showApp() {
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('sidebar-username').textContent = state.user.username;
+  document.getElementById('sidebar-email').textContent = state.user.email;
+  document.getElementById('sidebar-avatar').textContent = state.user.username[0].toUpperCase();
+  loadDashboard();
+  loadCoursesIntoSelects();
+}
+
+// ── Navigation ────────────────────────────────────────────────────────────
+function navTo(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.getElementById('nav-'+page)?.classList.add('active');
+  if (page==='courses') loadCourses();
+  if (page==='materials') loadMaterials();
+  if (page==='analytics') loadAnalytics();
+  if (page==='notes') loadNotes();
+  if (page==='reminders') loadReminders();
+  if (page==='quizzes') loadQuizMaterials();
+  if (page==='study-plan') loadStudyPlan();
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────
+function showModal(id) { document.getElementById(id).classList.add('active'); }
+function hideModal(id) { document.getElementById(id).classList.remove('active'); }
+document.addEventListener('click', e => { if(e.target.classList.contains('modal-overlay')) e.target.classList.remove('active'); });
+
+// ── Dashboard ─────────────────────────────────────────────────────────────
+async function loadDashboard() {
+  const [analytics, courses] = await Promise.all([api('GET','/api/analytics'), api('GET','/api/courses')]);
+  state.courses = courses;
+  document.getElementById('stat-courses').textContent = analytics.total_courses ?? 0;
+  document.getElementById('stat-materials').textContent = analytics.total_materials ?? 0;
+  document.getElementById('stat-flashcards').textContent = analytics.total_flashcards ?? 0;
+  document.getElementById('stat-avg').textContent = analytics.avg_score ? analytics.avg_score.toFixed(0)+'%' : '–';
+  
+  // Chart
+  renderBarChart('dash-chart', analytics.score_trend?.slice(-8).map(s=>({label:s.date.slice(5),value:s.score})) ?? []);
+  
+  // Courses
+  const el = document.getElementById('dash-courses');
+  if (!courses.length) { el.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📚</div><div class="empty-title">No courses yet</div><div class="empty-sub">Create a course to get started</div><button class="btn btn-primary btn-sm" onclick="showModal(\'modal-course\')">New Course</button></div>'; return; }
+  el.innerHTML = courses.slice(0,3).map(c => courseCardHTML(c)).join('');
+}
+
+function courseCardHTML(c) {
+  const icons = ['📐','🔬','💻','📖','🎨','🌍','⚗️','🧮'];
+  const icon = icons[c.id % icons.length];
+  return `<div class="course-card" onclick="viewCourse(${c.id})">
+    <div class="course-header" style="background:${c.color}22">${icon}</div>
+    <div class="course-body">
+      <div class="course-name">${c.name}</div>
+      <div class="course-meta">${c.description||'No description'}</div>
+      <div class="course-stats">
+        <span class="course-stat">📁 ${c.material_count} files</span>
+        <span class="course-stat">📌 ${c.topic_count} topics</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderBarChart(elId, data) {
+  if (!data || !data.length) { document.getElementById(elId).innerHTML = '<div class="text-muted text-sm" style="padding:20px">No data yet</div>'; return; }
+  const max = Math.max(...data.map(d=>d.value), 1);
+  document.getElementById(elId).innerHTML = data.map(d => `
+    <div class="bar-wrap">
+      <div class="bar-val">${d.value.toFixed(0)}%</div>
+      <div class="bar" style="height:${(d.value/max)*100}%;background:linear-gradient(180deg,var(--accent),var(--accent2))"></div>
+      <div class="bar-label">${d.label}</div>
+    </div>`).join('');
+}
+
+// ── Courses ───────────────────────────────────────────────────────────────
+async function loadCourses() {
+  const courses = await api('GET','/api/courses');
+  state.courses = courses;
+  const el = document.getElementById('courses-grid');
+  if (!courses.length) { el.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📚</div><div class="empty-title">No courses yet</div><button class="btn btn-primary btn-sm" onclick="showModal(\'modal-course\')">Create First Course</button></div>'; return; }
+  el.innerHTML = courses.map(c => courseCardHTML(c)).join('');
+  loadCoursesIntoSelects();
+}
+
+function selectColor(el, color) {
+  document.querySelectorAll('#color-picker .tag').forEach(t => { t.classList.remove('selected'); t.style.background=''; t.style.borderColor=''; t.style.color=''; });
+  el.classList.add('selected');
+  el.style.background = color+'33';
+  el.style.borderColor = color;
+  el.style.color = color;
+  state.selectedColor = color;
+}
+
+async function createCourse() {
+  const name = document.getElementById('course-name').value;
+  const desc = document.getElementById('course-desc').value;
+  if (!name) { toast('Enter a course name','error'); return; }
+  const r = await api('POST','/api/courses',{name,description:desc,color:state.selectedColor});
+  if (r.error) { toast(r.error,'error'); return; }
+  toast('Course created!','success');
+  hideModal('modal-course');
+  document.getElementById('course-name').value='';
+  document.getElementById('course-desc').value='';
+  loadCourses();
+  loadDashboard();
+}
+
+function viewCourse(id) {
+  state.selectedCourse = id;
+  navTo('materials');
+  document.getElementById('mat-course-filter').value = id;
+  loadMaterials();
+}
+
+async function loadCoursesIntoSelects() {
+  const courses = state.courses.length ? state.courses : await api('GET','/api/courses');
+  state.courses = courses;
+  const opts = courses.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  ['mat-course-filter','upload-course','fc-course-filter','new-note-course','rem-course'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const prefix = id==='mat-course-filter' ? '<option value="">All Courses</option>' : id==='fc-course-filter' ? '<option value="">Select Course</option>' : '<option value="">None</option>';
+    el.innerHTML = prefix + opts;
+  });
+}
+
+// ── Materials ─────────────────────────────────────────────────────────────
+async function loadMaterials() {
+  const cid = document.getElementById('mat-course-filter').value;
+  const el = document.getElementById('materials-list');
+  if (!cid) {
+    // Load all materials across all courses
+    const courses = await api('GET','/api/courses');
+    let all = [];
+    for (const c of courses) {
+      const mats = await api('GET',`/api/courses/${c.id}/materials`);
+      mats.forEach(m => { m.course_name = c.name; all.push(m); });
+    }
+    renderMaterials(el, all);
+    return;
+  }
+  const mats = await api('GET',`/api/courses/${cid}/materials`);
+  renderMaterials(el, mats);
+  loadTopicsForUpload(cid);
+}
+
+function renderMaterials(el, mats) {
+  if (!mats.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">📁</div><div class="empty-title">No materials yet</div><div class="empty-sub">Upload your first file</div><button class="btn btn-primary btn-sm" onclick="showModal(\'modal-upload\')">Upload File</button></div>'; return; }
+  const icons = {pdf:'📄',txt:'📝',docx:'📝',pptx:'📊',png:'🖼️',jpg:'🖼️',jpeg:'🖼️'};
+  const colors = {pdf:'rgba(248,113,113,.15)',txt:'rgba(124,110,247,.15)',docx:'rgba(62,207,207,.15)',pptx:'rgba(251,191,36,.15)',png:'rgba(52,211,153,.15)',jpg:'rgba(52,211,153,.15)'};
+  el.innerHTML = mats.map(m => `
+    <div class="material-item">
+      <div class="file-icon" style="background:${colors[m.file_type]||'var(--surface2)'}">${icons[m.file_type]||'📎'}</div>
+      <div>
+        <div class="material-name">${m.original_name}</div>
+        <div class="material-meta">${m.course_name||''} · ${new Date(m.uploaded_at).toLocaleDateString()}
+          ${m.has_summary?'<span class="badge badge-success" style="margin-left:6px">Processed</span>':''}
+        </div>
+      </div>
+      <div class="material-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openMaterial(${m.id},'${m.original_name}')">View</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteMaterial(${m.id})">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+async function loadTopicsForUpload(cid) {
+  const topics = await api('GET',`/api/courses/${cid}/topics`);
+  const sel = document.getElementById('upload-topic');
+  sel.innerHTML = '<option value="">None</option>' + topics.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+}
+
+document.getElementById('upload-course').addEventListener('change', function() { loadTopicsForUpload(this.value); });
+
+function fileSelected(input) {
+  document.getElementById('selected-file-name').textContent = input.files[0]?.name || '';
+}
+
+async function uploadMaterial() {
+  const cid = document.getElementById('upload-course').value;
+  const tid = document.getElementById('upload-topic').value;
+  const file = document.getElementById('file-input').files[0];
+  if (!cid) { toast('Select a course','error'); return; }
+  if (!file) { toast('Select a file','error'); return; }
+  const fd = new FormData();
+  fd.append('file',file); fd.append('course_id',cid);
+  if (tid) fd.append('topic_id',tid);
+  toast('Uploading…','info');
+  const r = await api('POST','/api/materials/upload',fd,true);
+  if (r.error) { toast(r.error,'error'); return; }
+  toast('File uploaded!','success');
+  hideModal('modal-upload');
+  document.getElementById('file-input').value='';
+  document.getElementById('selected-file-name').textContent='';
+  loadMaterials(); loadDashboard();
+}
+
+async function deleteMaterial(id) {
+  if (!confirm('Delete this material?')) return;
+  await api('DELETE',`/api/materials/${id}`);
+  toast('Deleted','success'); loadMaterials(); loadDashboard();
+}
+
+// ── Material Detail Modal ─────────────────────────────────────────────────
+let currentMat = null;
+async function openMaterial(id, name) {
+  state.currentMaterialId = id;
+  document.getElementById('mat-modal-title').textContent = name;
+  document.getElementById('mat-summary-content').textContent = 'Loading…';
+  document.getElementById('mat-concepts-content').innerHTML = '';
+  showModal('modal-material');
+  switchMatTab('summary');
+  // Try to load existing processed data
+  // We'll show generate tab options regardless
+  document.getElementById('mat-summary-content').innerHTML = '<div class="empty-state" style="padding:24px"><div class="empty-icon">⚡</div><div>Click "Generate" tab and click "Extract Key Info" to process this material with AI</div></div>';
+}
+
+function switchMatTab(t) {
+  ['summary','concepts','generate'].forEach(tab => {
+    document.getElementById('mat-tab-'+tab).style.display = tab===t?'block':'none';
+  });
+  document.querySelectorAll('#modal-material .tab').forEach((b,i) => {
+    b.classList.toggle('active', ['summary','concepts','generate'][i]===t);
+  });
+}
+
+async function processAndShow() {
+  const id = state.currentMaterialId;
+  document.getElementById('gen-output').innerHTML = '<div class="loading-text"><div class="spinner"></div> Processing with AI…</div>';
+  const r = await api('POST',`/api/materials/${id}/process`);
+  if (r.error) { document.getElementById('gen-output').innerHTML = `<div class="text-danger">${r.error}</div>`; return; }
+  document.getElementById('mat-summary-content').textContent = r.summary || 'No summary generated.';
+  document.getElementById('mat-concepts-content').innerHTML = `
+    <div class="tag-row mb-3">${(r.key_concepts||[]).map(c=>`<span class="badge badge-accent">${c}</span>`).join('')}</div>
+    <hr class="divider">
+    <div style="display:grid;gap:8px">${Object.entries(r.terms||{}).map(([k,v])=>`
+      <div style="padding:10px;background:var(--surface2);border-radius:8px"><strong class="text-accent">${k}</strong><div class="text-sm text-muted mt-2">${v}</div></div>`).join('')}
+    </div>`;
+  document.getElementById('gen-output').innerHTML = '<div class="text-success">✓ Processed! Check Summary and Key Concepts tabs.</div>';
+  toast('Material processed!','success');
+  loadMaterials();
+}
+
+async function genQuizFromModal() {
+  hideModal('modal-material');
+  navTo('quizzes');
+  await loadQuizMaterials();
+  // Try to select this material
+  document.getElementById('quiz-material-select').value = state.currentMaterialId;
+}
+
+async function genFlashcardsFromModal() {
+  const id = state.currentMaterialId;
+  document.getElementById('gen-output').innerHTML = '<div class="loading-text"><div class="spinner"></div> Generating flashcards…</div>';
+  switchMatTab('generate');
+  const r = await api('POST',`/api/materials/${id}/generate-flashcards`);
+  if (r.error) { document.getElementById('gen-output').innerHTML = `<div class="text-danger">${r.error}</div>`; return; }
+  document.getElementById('gen-output').innerHTML = `<div class="text-success">✓ Generated ${r.count} flashcards! Go to Flashcards tab to review.</div>`;
+  toast(`${r.count} flashcards created!`,'success');
+}
+
+// ── Flashcards ────────────────────────────────────────────────────────────
+async function loadFlashcards() {
+  const cid = document.getElementById('fc-course-filter').value;
+  if (!cid) return;
+  const el = document.getElementById('flashcard-area');
+  el.innerHTML = '<div class="loading-text"><div class="spinner"></div> Loading…</div>';
+  const cards = await api('GET',`/api/courses/${cid}/flashcards`);
+  state.flashcards = cards;
+  state.flashcardIndex = 0;
+  if (!cards.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">🃏</div><div class="empty-title">No flashcards yet</div><div class="empty-sub">Upload materials and generate flashcards from the Materials page</div></div>';
+    return;
+  }
+  renderFlashcard();
+}
+
+function renderFlashcard() {
+  const el = document.getElementById('flashcard-area');
+  const cards = state.flashcards;
+  const idx = state.flashcardIndex;
+  const fc = cards[idx];
+  const known = cards.filter(c=>c.known).length;
+  el.innerHTML = `
+    <div style="max-width:560px;margin:0 auto">
+      <div class="flex justify-between items-center mb-3">
+        <span class="text-sm text-muted">Card ${idx+1} of ${cards.length}</span>
+        <span class="badge badge-success">${known} Known</span>
+      </div>
+      <div class="progress-bar mb-3"><div class="progress-fill" style="width:${((idx+1)/cards.length)*100}%"></div></div>
+      <p class="flashcard-hint">Click card to flip ↕</p>
+      <div class="flashcard-container" id="flashcard" onclick="this.classList.toggle('flipped')">
+        <div class="flashcard-inner">
+          <div class="flashcard-face card-front">${fc.front}</div>
+          <div class="flashcard-face card-back">${fc.back}</div>
+        </div>
+      </div>
+      <div class="flex gap-2 justify-between mt-3">
+        <button class="btn btn-ghost" onclick="prevCard()" ${idx===0?'disabled':''}>← Prev</button>
+        <div class="flex gap-2">
+          <button class="btn btn-danger btn-sm" onclick="reviewCard(${fc.id},false)">Need Review</button>
+          <button class="btn btn-success btn-sm" onclick="reviewCard(${fc.id},true)">Know It ✓</button>
+        </div>
+        <button class="btn btn-ghost" onclick="nextCard()" ${idx===cards.length-1?'disabled':''}>Next →</button>
+      </div>
+      <div class="mt-4 card card-sm">
+        <div class="text-xs text-muted mb-2">ALL CARDS</div>
+        <div class="tag-row">${cards.map((c,i)=>`<div class="tag ${c.known?'selected':''} ${i===idx?'text-accent':''}" onclick="jumpCard(${i})">${i+1}</div>`).join('')}</div>
+      </div>
+    </div>`;
+}
+
+function prevCard() { if(state.flashcardIndex>0){state.flashcardIndex--;renderFlashcard();} }
+function nextCard() { if(state.flashcardIndex<state.flashcards.length-1){state.flashcardIndex++;renderFlashcard();} }
+function jumpCard(i) { state.flashcardIndex=i; renderFlashcard(); }
+
+async function reviewCard(id, known) {
+  await api('POST',`/api/flashcards/${id}/review`,{known});
+  state.flashcards[state.flashcardIndex].known = known;
+  toast(known?'Marked as known ✓':'Marked for review','info');
+  nextCard();
+}
+
+// ── Quizzes ───────────────────────────────────────────────────────────────
+async function loadQuizMaterials() {
+  const courses = await api('GET','/api/courses');
+  const sel = document.getElementById('quiz-material-select');
+  sel.innerHTML = '<option value="">Select material…</option>';
+  for (const c of courses) {
+    const mats = await api('GET',`/api/courses/${c.id}/materials`);
+    if (mats.length) {
+      const og = document.createElement('optgroup');
+      og.label = c.name;
+      mats.forEach(m => { const o=document.createElement('option'); o.value=m.id; o.textContent=m.original_name; og.appendChild(o); });
+      sel.appendChild(og);
+    }
+  }
+}
+
+async function generateQuiz() {
+  const mid = document.getElementById('quiz-material-select').value;
+  if (!mid) { toast('Select a material','error'); return; }
+  const num = document.getElementById('quiz-num').value;
+  const type = document.getElementById('quiz-type').value;
+  document.getElementById('quiz-area').innerHTML = '<div class="loading-text"><div class="spinner"></div> Generating quiz with AI…</div>';
+  const r = await api('POST',`/api/materials/${mid}/generate-quiz`,{num_questions:parseInt(num),type});
+  if (r.error) { document.getElementById('quiz-area').innerHTML = `<div class="text-danger card">${r.error}</div>`; return; }
+  state.quizData = r;
+  renderQuiz(r);
+}
+
+function renderQuiz(quiz) {
+  const el = document.getElementById('quiz-area');
+  el.innerHTML = `
+    <div class="card mb-3"><h3>${quiz.title}</h3><p class="text-sm text-muted mt-2">${quiz.questions.length} questions</p></div>
+    ${quiz.questions.map((q,i) => `
+      <div class="quiz-question" id="q-${i}">
+        <div class="q-num">Question ${i+1}</div>
+        <div class="q-text">${q.question}</div>
+        ${q.type==='mc' ? q.options.map((o,j) => `<div class="q-option" onclick="selectAnswer(${i},${j})" id="opt-${i}-${j}">${o}</div>`).join('') :
+          `<div class="q-option" onclick="selectAnswer(${i},true)" id="opt-${i}-true">True</div>
+           <div class="q-option" onclick="selectAnswer(${i},false)" id="opt-${i}-false">False</div>`}
+      </div>`).join('')}
+    <button class="btn btn-primary mt-3" onclick="submitQuiz(${quiz.id})">Submit Quiz</button>`;
+  el.dataset.answers = JSON.stringify(new Array(quiz.questions.length).fill(null));
+  el.dataset.start = Date.now();
+}
+
+function selectAnswer(qi, ans) {
+  const quizArea = document.getElementById('quiz-area');
+  let answers = JSON.parse(quizArea.dataset.answers);
+  answers[qi] = ans;
+  quizArea.dataset.answers = JSON.stringify(answers);
+  // Visual
+  const q = document.getElementById('q-'+qi);
+  q.querySelectorAll('.q-option').forEach(o => o.classList.remove('selected'));
+  const key = `opt-${qi}-${ans}`;
+  document.getElementById(key)?.classList.add('selected');
+}
+
+async function submitQuiz(qid) {
+  const quizArea = document.getElementById('quiz-area');
+  const answers = JSON.parse(quizArea.dataset.answers||'[]');
+  const timeTaken = Math.round((Date.now() - parseInt(quizArea.dataset.start||Date.now())) / 1000);
+  const r = await api('POST',`/api/quizzes/${qid}/submit`,{answers,time_taken:timeTaken});
+  if (r.error) { toast(r.error,'error'); return; }
+  // Show results
+  const q = state.quizData;
+  const color = r.score>=70?'var(--success)':r.score>=50?'var(--warning)':'var(--danger)';
+  let html = `<div class="card mb-3" style="text-align:center;border-color:${color}">
+    <div style="font-size:48px;font-family:'Syne',sans-serif;font-weight:800;color:${color}">${r.score.toFixed(0)}%</div>
+    <div class="text-sm text-muted">${r.correct} / ${r.total} correct · ${timeTaken}s</div>
+  </div>`;
+  q.questions.forEach((question, i) => {
+    const res = r.results[i];
+    html += `<div class="quiz-question">
+      <div class="q-num">Q${i+1} — ${res.correct?'<span class="text-success">✓ Correct</span>':'<span class="text-danger">✗ Wrong</span>'}</div>
+      <div class="q-text">${question.question}</div>
+      ${question.type==='mc' ? question.options.map((o,j)=>`<div class="q-option ${j===question.correct?'correct':j===res.user_answer&&!res.correct?'wrong':''}">${o}</div>`).join('') :
+        `<div class="q-option ${question.correct===true?'correct':''} ${res.user_answer===true&&!res.correct?'wrong':''}">True</div>
+         <div class="q-option ${question.correct===false?'correct':''} ${res.user_answer===false&&!res.correct?'wrong':''}">False</div>`}
+      ${res.explanation?`<div style="margin-top:10px;font-size:13px;color:var(--muted);background:var(--surface);padding:10px;border-radius:8px">💡 ${res.explanation}</div>`:''}
+    </div>`;
+  });
+  html += `<button class="btn btn-primary mt-3" onclick="generateQuiz()">Take Another Quiz</button>`;
+  document.getElementById('quiz-area').innerHTML = html;
+  toast(`Quiz completed! Score: ${r.score.toFixed(0)}%`, r.score>=70?'success':'info');
+  loadDashboard();
+}
+
+function switchQuizTab(t) {
+  document.getElementById('quiz-tab-take').style.display = t==='take'?'block':'none';
+  document.getElementById('quiz-tab-history').style.display = t==='history'?'block':'none';
+  document.querySelectorAll('#page-quizzes .tab').forEach((b,i)=>b.classList.toggle('active',(i===0&&t==='take')||(i===1&&t==='history')));
+  if (t==='history') loadQuizHistory();
+}
+
+async function loadQuizHistory() {
+  const attempts = await api('GET','/api/quizzes/history');
+  const el = document.getElementById('quiz-history-list');
+  if (!attempts.length) { el.innerHTML='<div class="empty-state"><div class="empty-icon">📊</div><div class="empty-title">No quiz history</div></div>'; return; }
+  el.innerHTML = attempts.map(a => {
+    const color = a.score>=70?'var(--success)':a.score>=50?'var(--warning)':'var(--danger)';
+    return `<div class="material-item">
+      <div class="file-icon" style="background:rgba(124,110,247,.15)">✏️</div>
+      <div>
+        <div class="material-name">${a.quiz_title}</div>
+        <div class="material-meta">${new Date(a.taken_at).toLocaleDateString()} · ${a.time_taken}s</div>
+      </div>
+      <div class="material-actions"><span style="font-family:'Syne';font-size:18px;font-weight:800;color:${color}">${a.score.toFixed(0)}%</span></div>
+    </div>`;
+  }).join('');
+}
+
+// ── Study Plan ────────────────────────────────────────────────────────────
+async function loadStudyPlan() {
+  const plan = await api('GET','/api/study-plan/latest');
+  if (plan) renderStudyPlan(plan);
+}
+
+async function generatePlan() {
+  document.getElementById('study-plan-area').innerHTML = '<div class="loading-text"><div class="spinner"></div> Generating personalized plan with AI…</div>';
+  const r = await api('POST','/api/study-plan/generate');
+  if (r.error) { document.getElementById('study-plan-area').innerHTML = `<div class="card text-danger">${r.error}</div>`; return; }
+  renderStudyPlan(r);
+  toast('Study plan generated!','success');
+}
+
+function renderStudyPlan(plan) {
+  const priorityColors = {high:'var(--danger)',medium:'var(--warning)',low:'var(--success)'};
+  const el = document.getElementById('study-plan-area');
+  el.innerHTML = `
+    <div class="card mb-3">
+      <div class="text-xs text-muted mb-1">WEEK THEME</div>
+      <h3>${plan.week_theme||'Personalized Study Plan'}</h3>
+      ${plan.tips?.length?`<div class="mt-3 flex gap-2 flex-wrap">${plan.tips.map(t=>`<span class="badge badge-accent">💡 ${t}</span>`).join('')}</div>`:''}
+    </div>
+    ${(plan.days||[]).map(d=>`
+      <div class="plan-day">
+        <div class="plan-day-name">${d.day} <span class="text-xs text-muted">(${d.total_minutes} min)</span></div>
+        ${(d.sessions||[]).map(s=>`
+          <div class="plan-session">
+            <div class="session-dot" style="background:${priorityColors[s.priority]||'var(--accent)'}"></div>
+            <div style="flex:1"><strong>${s.course}</strong> · ${s.topic}</div>
+            <div class="text-xs text-muted">${s.duration_min}min</div>
+            <span class="badge badge-accent">${s.activity}</span>
+          </div>`).join('')}
+      </div>`).join('')}`;
+}
+
+// ── Analytics ─────────────────────────────────────────────────────────────
+async function loadAnalytics() {
+  const data = await api('GET','/api/analytics');
+  const stats = document.getElementById('analytics-stats');
+  stats.innerHTML = `
+    <div class="stat-card" style="--c:var(--accent)"><div class="stat-icon">✏️</div><div class="stat-value">${data.total_quizzes}</div><div class="stat-label">Quizzes Taken</div></div>
+    <div class="stat-card" style="--c:var(--success)"><div class="stat-icon">📈</div><div class="stat-value">${data.avg_score}%</div><div class="stat-label">Average Score</div></div>
+    <div class="stat-card" style="--c:var(--accent2)"><div class="stat-icon">🃏</div><div class="stat-value">${data.known_flashcards}/${data.total_flashcards}</div><div class="stat-label">Flashcards Known</div></div>
+    <div class="stat-card" style="--c:var(--accent3)"><div class="stat-icon">📁</div><div class="stat-value">${data.total_materials}</div><div class="stat-label">Materials</div></div>`;
+  renderBarChart('analytics-chart', data.score_trend?.slice(-10).map(s=>({label:s.date.slice(5),value:s.score}))||[]);
+  const perf = document.getElementById('course-perf-list');
+  perf.innerHTML = (data.course_performance||[]).map(c=>`
+    <div class="mb-3">
+      <div class="flex justify-between items-center mb-2">
+        <span class="text-sm font-bold">${c.course}</span>
+        <span class="text-sm" style="color:${c.avg_score>=70?'var(--success)':c.avg_score>=50?'var(--warning)':'var(--danger)'}">${c.avg_score}%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${c.avg_score}%"></div></div>
+    </div>`).join('') || '<div class="text-muted text-sm">No quiz attempts yet</div>';
+  const mastery = document.getElementById('flashcard-mastery');
+  const pct = data.total_flashcards ? Math.round(data.known_flashcards/data.total_flashcards*100) : 0;
+  mastery.innerHTML = `
+    <div class="flex justify-between items-center mb-2"><span class="text-sm">${data.known_flashcards} of ${data.total_flashcards} cards mastered</span><span class="text-sm text-accent">${pct}%</span></div>
+    <div class="progress-bar" style="height:12px"><div class="progress-fill" style="width:${pct}%"></div></div>`;
+}
+
+// ── Notes ─────────────────────────────────────────────────────────────────
+async function loadNotes() {
+  const notes = await api('GET','/api/notes');
+  const el = document.getElementById('notes-list');
+  if (!notes.length) { el.innerHTML='<div class="empty-state"><div class="empty-icon">📝</div><div class="empty-title">No notes yet</div><button class="btn btn-primary btn-sm" onclick="showModal(\'modal-note\')">Create Note</button></div>'; return; }
+  el.innerHTML = notes.map(n=>`
+    <div class="material-item" onclick="openNote(${n.id})" style="cursor:pointer">
+      <div class="file-icon" style="background:rgba(124,110,247,.15)">📝</div>
+      <div>
+        <div class="material-name">${n.title}</div>
+        <div class="material-meta">${new Date(n.updated_at).toLocaleDateString()} ${n.tags?'· '+n.tags:''}</div>
+      </div>
+    </div>`).join('');
+}
+
+async function createNote() {
+  const title = document.getElementById('new-note-title').value;
+  if (!title) { toast('Enter a title','error'); return; }
+  const r = await api('POST','/api/notes',{title,course_id:document.getElementById('new-note-course').value||null,tags:document.getElementById('new-note-tags').value});
+  toast('Note created','success'); hideModal('modal-note');
+  document.getElementById('new-note-title').value=''; document.getElementById('new-note-tags').value='';
+  const notes = await api('GET','/api/notes');
+  const newNote = notes.find(n=>n.id===r.id);
+  if (newNote) openNote(newNote.id);
+  loadNotes();
+}
+
+async function openNote(id) {
+  const notes = await api('GET','/api/notes');
+  const note = notes.find(n=>n.id===id);
+  if (!note) return;
+  state.currentNoteId = id;
+  document.getElementById('note-edit-title').value = note.title;
+  document.getElementById('note-edit-content').value = note.content||'';
+  document.getElementById('note-editor').style.display='block';
+  document.getElementById('notes-layout').style.gridTemplateColumns='1fr 1.5fr';
+}
+
+function closeNoteEditor() {
+  document.getElementById('note-editor').style.display='none';
+  state.currentNoteId = null;
+}
+
+async function saveNote() {
+  if (!state.currentNoteId) return;
+  await api('PUT',`/api/notes/${state.currentNoteId}`,{
+    title:document.getElementById('note-edit-title').value,
+    content:document.getElementById('note-edit-content').value
+  });
+  toast('Note saved','success'); loadNotes();
+}
+
+async function deleteCurrentNote() {
+  if (!state.currentNoteId || !confirm('Delete this note?')) return;
+  await api('DELETE',`/api/notes/${state.currentNoteId}`);
+  closeNoteEditor(); toast('Deleted','success'); loadNotes();
+}
+
+// ── Translate ─────────────────────────────────────────────────────────────
+async function doTranslate() {
+  const text = document.getElementById('trans-input').value;
+  const lang = document.getElementById('trans-lang').value;
+  if (!text) { toast('Enter text to translate','error'); return; }
+  document.getElementById('trans-output').innerHTML = '<div class="loading-text"><div class="spinner"></div> Translating…</div>';
+  const r = await api('POST','/api/translate',{text,language:lang});
+  if (r.error) { document.getElementById('trans-output').innerHTML = `<div class="text-danger">${r.error}</div>`; return; }
+  document.getElementById('trans-output').innerHTML = r.translated.replace(/\n/g,'<br>');
+  toast('Translated!','success');
+}
+
+function copyTranslation() {
+  navigator.clipboard.writeText(document.getElementById('trans-output').innerText);
+  toast('Copied!','success');
+}
+
+// ── Reminders ─────────────────────────────────────────────────────────────
+async function loadReminders() {
+  const reminders = await api('GET','/api/reminders');
+  const el = document.getElementById('reminders-list');
+  if (!reminders.length) { el.innerHTML='<div class="empty-state"><div class="empty-icon">🔔</div><div class="empty-title">No reminders</div><button class="btn btn-primary btn-sm" onclick="showModal(\'modal-reminder\')">Add Reminder</button></div>'; return; }
+  const now = new Date();
+  el.innerHTML = reminders.map(r => {
+    const due = new Date(r.due_date);
+    const overdue = !r.completed && due < now;
+    return `<div class="material-item" style="${r.completed?'opacity:.5':''}">
+      <div class="file-icon" style="background:${overdue?'rgba(248,113,113,.15)':'rgba(251,191,36,.15)'}">${r.completed?'✅':'🔔'}</div>
+      <div>
+        <div class="material-name">${r.title}</div>
+        <div class="material-meta ${overdue?'text-danger':''}">${due.toLocaleString()}</div>
+      </div>
+      ${!r.completed?`<button class="btn btn-success btn-sm" onclick="completeReminder(${r.id})">Done</button>`:''}
+    </div>`;
+  }).join('');
+}
+
+async function createReminder() {
+  const title = document.getElementById('rem-title').value;
+  const due = document.getElementById('rem-date').value;
+  if (!title||!due) { toast('Fill in all fields','error'); return; }
+  await api('POST','/api/reminders',{title,due_date:due,course_id:document.getElementById('rem-course').value||null});
+  toast('Reminder set!','success'); hideModal('modal-reminder');
+  document.getElementById('rem-title').value=''; document.getElementById('rem-date').value='';
+  loadReminders();
+}
+
+async function completeReminder(id) {
+  await api('POST',`/api/reminders/${id}/complete`);
+  toast('Marked complete ✓','success'); loadReminders();
+}
+
+// ── Search ────────────────────────────────────────────────────────────────
+let searchTimeout;
+async function globalSearch(q) {
+  clearTimeout(searchTimeout);
+  const el = document.getElementById('search-results');
+  if (!q) { el.style.display='none'; return; }
+  searchTimeout = setTimeout(async () => {
+    const results = await api('GET',`/api/search?q=${encodeURIComponent(q)}`);
+    if (!results.length) { el.style.display='none'; return; }
+    el.style.display='block';
+    el.innerHTML = `<div class="card card-sm"><div class="text-xs text-muted mb-2">RESULTS</div>
+      ${results.map(r=>`<div class="material-item" style="cursor:pointer" onclick="searchNav('${r.type}',${r.id})">
+        <div class="file-icon" style="background:var(--surface2)">${{course:'📚',material:'📁',note:'📝'}[r.type]}</div>
+        <div><div class="material-name">${r.title}</div><div class="material-meta">${r.subtitle}</div></div>
+      </div>`).join('')}
+    </div>`;
+  }, 300);
+}
+
+function searchNav(type, id) {
+  document.getElementById('global-search').value='';
+  document.getElementById('search-results').style.display='none';
+  if (type==='course') viewCourse(id);
+  else if (type==='material') navTo('materials');
+  else if (type==='note') { navTo('notes'); setTimeout(()=>openNote(id),200); }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+checkAuth();
+</script>
+</body>
+</html>
